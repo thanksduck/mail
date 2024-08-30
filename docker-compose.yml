@@ -1,0 +1,13 @@
+version: '3'
+services:
+  app:
+    image: sivm99/mail:arm64
+    build: .
+    ports:
+      - "3456:3456"
+    restart: always
+    env_file:
+      - config.env
+    volumes:
+      - ./run.log:/app/run.log
+    command: ["sh", "-c", "npm run prod > run.log 2>&1"]
