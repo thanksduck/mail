@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     match: [
       /^[a-zA-Z][a-zA-Z0-9-_\.]{3,}$/,
-      "Cant start with a number and can only contain letters and numbers -, _ and .",
+      "Username cannot start with a number and can only contain letters, numbers, hyphens (-), underscores (_), and periods (.). No spaces allowed.",
     ],
   },
   name: {
@@ -69,7 +69,7 @@ const userSchema = new mongoose.Schema({
   active: {
     type: Boolean,
     select: false,
-    default: true
+    default: true,
   },
 });
 
@@ -79,28 +79,49 @@ userSchema.pre("save", async function (next) {
   this.passwordConfirm = undefined;
   next();
 });
+userSchema.pre("save", async function (next) {
+  const user = this;
+  if (user.isModified("destination")) {
+    const existingUser = await User.findOne({
+      destination: { $in: user.destination },
+    });
+    if (existingUser) {
+      const error = new Error("Duplicate destination found");
+      return next(error);
+    }
+    user.destinationCount = user.destination.length;
+  }
+  if (user.isModified("alias")) {
+    const existingUser = await User.findOne({ alias: { $in: user.alias } });
+    if (existingUser) {
+      const error = new Error("Duplicate alias found");
+      return next(error);
+    }
+    user.aliasCount = user.alias.length;
+  }
+  next();
+});
 
 userSchema.methods.setAlias = function (alias) {
   this.alias.push(alias);
   return this.save();
-}
+};
 userSchema.methods.setDestination = function (destination) {
   this.destination.push(destination);
   return this.save();
-}
+};
 userSchema.methods.removeAlias = function (alias) {
   this.alias = this.alias.filter((a) => a !== alias);
   return this.save();
-}
+};
 userSchema.methods.removeDestination = function (destination) {
   this.destination = this.destination.filter((d) => d !== destination);
   return this.save();
-}
+};
 userSchema.methods.setIsPremium = function () {
   this.isPremium = true;
   return this.save();
-}
-
+};
 userSchema.methods.correctPassword = async function (
   candidatePassword,
   userPassword

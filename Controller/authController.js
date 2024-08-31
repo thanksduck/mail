@@ -101,7 +101,7 @@ export const forgetPassword = asyncErrorHandler(async (req, res, next) => {
     <p><strong>Forgot your password?</strong> No worries! Click the link below to reset your password:</p>
     <p><a href="${resetURL}" style="color: #1a73e8; text-decoration: none;">Reset your password</a></p>
     <p>If you did not request this password reset, please ignore this email.</p>
-    <p>Best regards,<br><strong>YourAppName Team</strong></p>
+    <p>Best regards,<br><strong>One Alias Services</strong></p>
   </div>
 `;
   try {

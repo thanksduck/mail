@@ -47,7 +47,7 @@ app.use("/api/v1/mail", mailRouter);
 app.use("/health", (req, res) => {
   res.status(200).json({
     status: "success",
-    message: "server is running",
+    message: "version 1.0.0.31.8 server is running",
   });
 });
 

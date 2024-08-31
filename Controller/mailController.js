@@ -48,22 +48,40 @@ export const createRule = asyncErrorHandler(async (req, res, next) => {
       enabled: response.data.enabled,
     });
 
-    const user = await User.findOne({ username });
-    if (user) {
-      if (!user.alias.includes(alias)) {
-        user.alias.push(alias);
-      }
-      if (!user.destination.includes(destination)) {
-        user.destination.push(destination);
-      }
-      user.aliasCount = user.alias.length;
-      user.destinationCount = user.destination.length;
-      await user.save({ validateBeforeSave: false });
-    }
-    const safeRule = newRule.toObject();
-    delete safeRule.ruleId;
-    safeRule._id = req.user.id;
-    createSendResponse(safeRule, 201, res);
+    await User.findByIdAndUpdate(
+      req.user.id,
+      [
+        {
+          $addFields: {
+            alias: {
+              $cond: {
+                if: { $in: [alias, "$alias"] },
+                then: "$alias",
+                else: { $concatArrays: ["$alias", [alias]] },
+              },
+            },
+            destination: {
+              $cond: {
+                if: { $in: [destination, "$destination"] },
+                then: "$destination",
+                else: { $concatArrays: ["$destination", [destination]] },
+              },
+            },
+          },
+        },
+        {
+          $set: {
+            aliasCount: { $size: "$alias" },
+            destinationCount: { $size: "$destination" },
+          },
+        },
+      ],
+      { new: true, validateBeforeSave: false }
+    );
+
+    newRule.RuleId = newRule._id;
+    newRule._id = req.user.id;
+    createSendResponse(newRule, 201, res);
   } catch (error) {
     return next(new CustomError(`Operation failed: ${error.message}`, 500));
   }
@@ -125,7 +143,7 @@ export const updateRule = asyncErrorHandler(async (req, res, next) => {
     rule.destination = destination;
     rule.name = response.data.result.name;
     rule.enabled = response.data.enabled;
-    await rule.save();
+    await rule.save({validateBeforeSave: false});
     rule._id = req.user.id;
     rule.ruleId = id;
     createSendResponse(rule, 200, res);
@@ -154,11 +172,11 @@ export const deleteRule = asyncErrorHandler(async (req, res, next) => {
         "X-Auth-Key": process.env.CF_API_KEY1,
       },
     };
-    await axios(options);
+    const response = await axios(options);
     if (response.data.success === false) {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
-    await rule.remove();
+    await rule.deleteOne();
     const safeObject = { _id: req.user.id };
     createSendResponse(safeObject, 204, res);
   } catch (error) {

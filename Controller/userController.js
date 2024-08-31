@@ -32,7 +32,7 @@ export const getUserRouting = asyncErrorHandler(async (req, res, next) => {
     }
     rulesArray.push({ alias: rule.alias, destination: rule.destination });
   });
-  const user = {
+  const aliasDetails = {
     _id: req.user.id,
     username,
     alias,
@@ -43,7 +43,7 @@ export const getUserRouting = asyncErrorHandler(async (req, res, next) => {
     rulesCount: rulesArray.length,
   };
 
-  createSendResponse(user, 200, res);
+  createSendResponse(aliasDetails, 200, res);
 });
 
 export const updatePassword = asyncErrorHandler(async (req, res, next) => {
@@ -57,12 +57,8 @@ export const updatePassword = asyncErrorHandler(async (req, res, next) => {
   }
   user.password = newPassword;
   user.passwordConfirm = newPasswordConfirm;
-  const updatedUser = await user.save();
-  const userObject = updatedUser.toObject();
-  delete userObject.password;
-  delete userObject.isPremium;
-  delete userObject.active;
-  createSendResponse(userObject, 200, res);
+  const updatedUser = await user.save({ validateBeforeSave: true });
+  createSendResponse(updatedUser, 200, res);
 });
 
 export const deleteMe = asyncErrorHandler(async (req, res, next) => {
@@ -76,23 +72,25 @@ export const deleteMe = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-
 export const updateMe = asyncErrorHandler(async (req, res, next) => {
   const { username, name, email } = req.body;
-  if (!username || !name || !email) {
-    return next(new CustomError("Please provide all the required fields", 400));
+  const updateFields = {};
+  if (username) updateFields.username = username;
+  if (name) updateFields.name = name;
+  if (email) updateFields.email = email;
+  if (Object.keys(updateFields).length === 0) {
+    return next(new CustomError("No fields provided for update", 400));
   }
-  const user = await User.findByIdAndUpdate(
-    req.user.id,
-    { username, name, email },
-    { new: true }
-  );
+
+  const user = await User.findByIdAndUpdate(req.user.id, updateFields, {
+    new: true,
+    runValidators: true,
+    context: "query",
+  });
   if (!user) {
     return next(new CustomError("User not found", 404));
   }
-  const userObject = user.toObject();
-  delete userObject.password;
-  delete userObject.isPremium;
-  delete userObject.active;
-  createSendResponse(userObject, 200, res);
+  user.isPremium = undefined;
+  user.active = undefined;
+  createSendResponse(user, 200, res);
 });
