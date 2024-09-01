@@ -1,5 +1,6 @@
 import Rule from "../Models/ruleModel.js";
 import User from "../Models/userModel.js";
+import Destination from "../Models/dstModel.js";
 import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
@@ -8,6 +9,14 @@ import axios from "axios";
 export const createRule = asyncErrorHandler(async (req, res, next) => {
   const { alias, destination } = req.body;
   const username = req.user.username;
+  const validDestination = await Destination.findOne({ destination });
+  if (!validDestination || validDestination.username !== username) {
+    return next(new CustomError("Destination Not Found", 401));
+  }
+  const existingAlias = await Rule.findOne({ alias });
+  if (existingAlias ) {
+      return next(new CustomError("Alias or Rule Already Exist", 400));  
+  }
   if (!alias || !destination || !username) {
     return next(
       new CustomError(
@@ -143,7 +152,7 @@ export const updateRule = asyncErrorHandler(async (req, res, next) => {
     rule.destination = destination;
     rule.name = response.data.result.name;
     rule.enabled = response.data.enabled;
-    await rule.save({validateBeforeSave: false});
+    await rule.save({ validateBeforeSave: false });
     rule._id = req.user.id;
     rule.ruleId = id;
     createSendResponse(rule, 200, res);
