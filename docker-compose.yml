@@ -10,4 +10,4 @@ services:
       - config.env
     volumes:
       - ./run.log:/app/run.log
-    command: ["sh", "-c", "npm run prod > run.log 2>&1"]
+    command: ["sh", "-c", "npm run prod"]

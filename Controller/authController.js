@@ -146,6 +146,16 @@ export const resetPassword = asyncErrorHandler(async (req, res, next) => {
   user.passwordConfirm = passwordConfirm;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
-  await user.save();
+  await user.save({ validateBeforeSave: true });
   createSendResponse(user, 200, res);
 });
+
+export const logout = asyncErrorHandler(async (req, res, next) => {
+  res.cookie("jwt", "loggedout", {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+    scure: true,
+  });
+  res.status(200).json({ status: "success" });
+}
+);

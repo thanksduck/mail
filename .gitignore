@@ -1,6 +1,7 @@
 # Environment Variables
 *.env
-
+# temperory files
+tmp.md
 # Node Modules
 node_modules
 dist
