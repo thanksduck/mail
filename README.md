@@ -2,8 +2,20 @@
 
 `REST API` built for managing email routing rules on Cloudflare with **multi user support**. Each user can have their own `destinations`, `aliases`, and `rules`. Custom domain* setup within user is also possible but hasn't been implemented yet.
 
-![Alias Illustration](https://cdn.jsdelivr.net/gh/thanksduck/mr@main/oas-route-1.svg)
+For the API documentation, visit the [OAS official Documentation](https://docs.20032003.xyz/oas/).
+## API Endpoints Visualization
 
+| ![Alias Illustration](https://cdn.jsdelivr.net/gh/thanksduck/mr@main/One%20Alias%20Service%20API%2023.svg) | ![API Endpoints Auth](https://cdn.jsdelivr.net/gh/thanksduck/mr@main/oas-api-endpoints-auth.svg) |
+|:-------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
+| **Alias Illustration**                                                                | **API Endpoints Auth**                                                                           |
+
+| ![API Endpoints User](https://cdn.jsdelivr.net/gh/thanksduck/mr@main/oas-api-endpoints-user.svg) | ![API Endpoints Mail](https://cdn.jsdelivr.net/gh/thanksduck/mr@main/oas-api-endpoints-mail-rule.svg) |
+|:-----------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------:|
+| **API Endpoints User**                                                                           | **API Endpoints Mail**                                                                               |
+
+| ![API Endpoints Destination](https://cdn.jsdelivr.net/gh/thanksduck/mr@main/oas-api-endpoints-destination.svg) |
+|:-------------------------------------------------------------------------------------------------------------:|
+| **API Endpoints Destination**                                                                                  |
 ## Features
 - [x] User authentication with JWT.
 - [x] User registration.
