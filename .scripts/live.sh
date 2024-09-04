@@ -17,7 +17,7 @@ if [ -f config.env ]; then
 else
     cp $SECRET_PATH/config.env .
     echo "config.env file copied from $SECRET_PATH/config.env"
-    exit 1
+    exit 0
 fi
 
 # we will first check if docker compose is up and running
