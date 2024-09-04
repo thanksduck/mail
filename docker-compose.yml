@@ -1,10 +1,8 @@
-version: '3'
 services:
   app:
-    image: sivm99/mail:arm64
     build: .
     ports:
-      - "3456:3456"
+      - "127.0.0.1:3456:3456"
     restart: always
     env_file:
       - config.env

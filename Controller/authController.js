@@ -33,9 +33,12 @@ export const login = asyncErrorHandler(async (req, res, next) => {
     );
   }
   const user = await User.findOne({ $or: [{ username }, { email }] }).select(
-    "+password"
+    "+password +active"
   );
-  if (!user || !(await user.correctPassword(password, user.password))) {
+  if (!user || !user.active) {
+    return next(new CustomError("Incorrect username or password", 401));
+  }
+  if (!(await user.correctPassword(password, user.password))) {
     return next(new CustomError("Incorrect email or password", 401));
   }
   createSendResponse(user, 200, res);
@@ -157,5 +160,4 @@ export const logout = asyncErrorHandler(async (req, res, next) => {
     scure: true,
   });
   res.status(200).json({ status: "success" });
-}
-);
+});

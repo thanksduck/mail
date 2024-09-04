@@ -1,24 +1,22 @@
 import mongoose from "mongoose";
-
+import validator from "validator";
 mongoose.ruleSchema = new mongoose.Schema({
     alias:{
         type: String,
-        default: "",
         required: [true, "No Alias was provided"],
+        lowercase: true,
+        validator: [validator.isEmail, "Alias Can Only be an Email Address"],
     },
     ruleId: {
         type: String,
-        default: "",
         required: [true, "Rule ID from the Cloudflare API"],
     },
     username: {
         type: String,
-        default: "",
         required: [true, "username is must"],
     },
     destination: {
         type: String,
-        default: "",
         required: [true, "destination address was not provided"],
     },
     created: {

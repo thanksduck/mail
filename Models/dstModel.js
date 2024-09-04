@@ -1,36 +1,35 @@
-
 import mongoose from "mongoose";
-
+import validator from "validator";
 const destSchema = new mongoose.Schema({
-    destination: {
-        type: String,
-        default: "",
-        required: [true, "Please provide a destination address"],
-    },
-    username: {
-        type: String,
-        default: "",
-        required: [true, "Please provide a username"],
-    },
-    destinationId: {
-        type: String,
-        default: "",
-        required: [true, "ID from the Cloudflare Portal"],
-    },
-    created: {
-        type: Date,
-        select: false,
-        default: Date.now(),
-    },
-    modefied: {
-        type: Date,
-        select: false,
-        default: Date.now(),
-    },
-    verified: {
-        type: Date,
-        default: null
-    },
+  destination: {
+    type: String,
+    required: [true, "Destination Field is Required"],
+    unique: [true, "An account with this email already exists"],
+    lowercase: true,
+    validate: [validator.isEmail, "Not a valid email"],
+  },
+  username: {
+    type: String,
+    required: [true, "Please provide a username"],
+  },
+  destinationId: {
+    type: String,
+    required: [true, "ID from the Cloudflare Portal"],
+  },
+  created: {
+    type: Date,
+    select: false,
+    default: Date.now(),
+  },
+  modefied: {
+    type: Date,
+    select: false,
+    default: Date.now(),
+  },
+  verified: {
+    type: Date,
+    default: null,
+  },
 });
 
 const Destination = mongoose.model("Destination", destSchema);

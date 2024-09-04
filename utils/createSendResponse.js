@@ -22,6 +22,8 @@ export default function createSendResponse(user, statusCode, res) {
 
   res.cookie("jwt", token, options);
   user.password = undefined;
+  user._id = undefined;
+  user.__v = undefined;
   res.status(statusCode).json({
     status: "success",
     data: {

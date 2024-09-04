@@ -6,7 +6,7 @@ import createSendResponse from "../utils/createSendResponse.js";
 import axios from "axios";
 
 async function isAllowed(id) {
-  const user = await User.findById(id).select('+isPremium'); 
+  const user = await User.findById(id).select("+isPremium");
   return user.isPremium || user.destinationCount < 2;
 }
 
@@ -54,7 +54,6 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
     };
 
     const response = await axios(options);
-
     if (response.data.success === false) {
       return next(
         new CustomError(
@@ -76,17 +75,28 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      {
-        $addToSet: { destination: destination },
-        $set: { destinationCount: { $add: [{ $size: "$destination" }, 1] } },
-      },
+      [
+        {
+          $addFields: {
+            destination: {
+              $cond: {
+                if: { $isArray: "$destination" },
+                then: { $setUnion: ["$destination", [destination]] },
+                else: [destination],
+              },
+            },
+          },
+        },
+        {
+          $set: {
+            destinationCount: { $size: { $ifNull: ["$destination", []] } },
+          },
+        },
+      ],
       {
         new: true,
-        validateBeforeSave: false,
       }
     );
-    user.isPremium = undefined;
-    user.active = undefined;
     createSendResponse(user, 201, res);
   } catch (error) {
     return next(
@@ -112,7 +122,7 @@ export const deleteDestination = asyncErrorHandler(async (req, res, next) => {
       url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses/${cfId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
+        Authorization: `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
     };
@@ -156,7 +166,7 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
       url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses/${cfId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
+        Authorization: `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
     };
