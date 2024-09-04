@@ -17,9 +17,14 @@ jobs:
         uses: appleboy/ssh-action@master
         env:
           SECRET_PATH: ${{secrets.SECRET_PATH}}
+          repo_path: ${{secrets.SECRET_PROJECT_PATH}}
+          TOY_ENV: "Enjoy-deploy"
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSHKEY }}
           envs: SECRET_PATH
-          script: "cd ~/server/mail && sh ./.scripts/live.sh"
+          script: |
+            echo "Login To Machine Was SuccessFull"
+            echo "Here is your ToyENV - i'm $TOY_ENV"
+            cd ~/server/mail && ./scripts/live.sh
