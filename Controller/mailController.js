@@ -138,7 +138,7 @@ export const updateRule = asyncErrorHandler(async (req, res, next) => {
       url: `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/email/routing/rules/${rule.ruleId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        Authorization: `Bearer ${process.env.CF_API_KEY}`,
+        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
       data: {
@@ -183,7 +183,7 @@ export const deleteRule = asyncErrorHandler(async (req, res, next) => {
       url: `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/email/routing/rules/${rule.ruleId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        Authorization: `Bearer ${process.env.CF_API_KEY}`,
+        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
       },
     };
     const response = await axios(options);

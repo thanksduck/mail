@@ -6,6 +6,4 @@ services:
     restart: always
     env_file:
       - config.env
-    volumes:
-      - ./run.log:/app/run.log
     command: ["sh", "-c", "npm run prod"]

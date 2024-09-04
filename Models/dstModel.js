@@ -4,7 +4,7 @@ const destSchema = new mongoose.Schema({
   destination: {
     type: String,
     required: [true, "Destination Field is Required"],
-    unique: [true, "An account with this email already exists"],
+    unique: [true, "Destination Already Exists"],
     lowercase: true,
     validate: [validator.isEmail, "Not a valid email"],
   },

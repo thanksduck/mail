@@ -30,7 +30,7 @@ export const getUserRouting = asyncErrorHandler(async (req, res, next) => {
     if (!destination.includes(rule.destination)) {
       destination.push(rule.destination);
     }
-    rulesArray.push({ alias: rule.alias, destination: rule.destination });
+    rulesArray.push({ alias: rule.alias, destination: rule.destination , ruleId: rule._id });
   });
   const aliasDetails = {
     _id: req.user.id,
