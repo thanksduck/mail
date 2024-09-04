@@ -13,6 +13,9 @@ export const createRule = asyncErrorHandler(async (req, res, next) => {
   if (!validDestination || validDestination.username !== username) {
     return next(new CustomError("Destination Not Found", 401));
   }
+  if (!validDestination.verified) {
+    return next(new CustomError("Destination Not Verified Yet Check your mail/spam", 401));
+  }
   const existingAlias = await Rule.findOne({ alias });
   if (existingAlias ) {
       return next(new CustomError("Alias or Rule Already Exist", 400));  
@@ -31,7 +34,7 @@ export const createRule = asyncErrorHandler(async (req, res, next) => {
       url: `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/email/routing/rules`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "X-Auth-Key": process.env.CF_API_KEY1,
+        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
       data: {
@@ -133,7 +136,7 @@ export const updateRule = asyncErrorHandler(async (req, res, next) => {
       url: `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/email/routing/rules/${rule.ruleId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "X-Auth-Key": process.env.CF_API_KEY1,
+        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
       data: {
@@ -178,7 +181,7 @@ export const deleteRule = asyncErrorHandler(async (req, res, next) => {
       url: `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/email/routing/rules/${rule.ruleId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "X-Auth-Key": process.env.CF_API_KEY1,
+        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
       },
     };
     const response = await axios(options);

@@ -1,6 +1,6 @@
 {
   "name": "mail",
-  "version": "1.0.0.31.8",
+  "version": "1.0.0.4.9",
   "description": "One Alias Service, Forward to your own main address",
   "main": "server.js",
   "type": "module",

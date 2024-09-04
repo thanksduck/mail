@@ -45,7 +45,7 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
       url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "X-Auth-Key": process.env.CF_API_KEY1,
+        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
       data: {
@@ -112,7 +112,7 @@ export const deleteDestination = asyncErrorHandler(async (req, res, next) => {
       url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses/${cfId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "X-Auth-Key": process.env.CF_API_KEY1,
+        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
     };
@@ -156,7 +156,7 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
       url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses/${cfId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "X-Auth-Key": process.env.CF_API_KEY1,
+        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
     };
