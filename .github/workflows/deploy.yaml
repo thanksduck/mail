@@ -15,8 +15,11 @@ jobs:
 
       - name: Deploy to server
         uses: appleboy/ssh-action@master
+        env:
+          SECRET_PATH: ${{secrets.SECRET_PATH}}
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSHKEY }}
+          envs: SECRET_PATH
           script: "cd ~/server/mail && sh ./.scripts/live.sh"
