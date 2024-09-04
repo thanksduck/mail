@@ -27,4 +27,4 @@ jobs:
           script: |
             echo "Login To Machine Was SuccessFull"
             echo "Here is your ToyENV - i'm $TOY_ENV"
-            cd ~/server/mail && ./scripts/live.sh
+            cd ~/server/mail/ && sh ./.scripts/live.sh
