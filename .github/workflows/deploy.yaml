@@ -19,4 +19,4 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSHKEY }}
-          script: "cd ${{ secrets.PROJECT_PATH }} && echo "Cd into directory was successfull" && sh ./.scripts/live.sh"
+          script: "cd ${{ secrets.PROJECT_PATH }} && sh ./.scripts/live.sh"
