@@ -30,7 +30,7 @@ export const listDestination = asyncErrorHandler(async (req, res, next) => {
     destinationCount: destinations.length,
     destinations: responseArray,
   };
-  createSendResponse(safeResponse, 200, res);
+  createSendResponse(safeResponse, 200, res,"destinations");
 });
 
 export const createDestination = asyncErrorHandler(async (req, res, next) => {
@@ -108,7 +108,9 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
         new: true,
       }
     );
-    createSendResponse(user, 201, res);
+    newDestination.destinationId = newDestination._id;
+    newDestination._id = req.user.id;
+    createSendResponse(newDestination, 201, res, "destination");
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)
@@ -192,7 +194,7 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
     localDestination._id = req.user.id;
     localDestination.verified = response.data.result.verified;
     delete localDestination.destinationId;
-    createSendResponse(localDestination, 200, res);
+    createSendResponse(localDestination, 200, res, "destination");
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)

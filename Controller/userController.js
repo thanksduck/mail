@@ -10,7 +10,7 @@ export const getUser = asyncErrorHandler(async (req, res, next) => {
   if (!user) {
     return next(new CustomError("User not found", 404));
   }
-  createSendResponse(user, 200, res);
+  createSendResponse(user, 200, res,"user");
 });
 
 export const getUserRouting = asyncErrorHandler(async (req, res, next) => {
@@ -43,7 +43,7 @@ export const getUserRouting = asyncErrorHandler(async (req, res, next) => {
     rulesCount: rulesArray.length,
   };
 
-  createSendResponse(aliasDetails, 200, res);
+  createSendResponse(aliasDetails, 200, res,"rules");
 });
 
 export const updatePassword = asyncErrorHandler(async (req, res, next) => {
@@ -58,7 +58,7 @@ export const updatePassword = asyncErrorHandler(async (req, res, next) => {
   user.password = newPassword;
   user.passwordConfirm = newPasswordConfirm;
   const updatedUser = await user.save({ validateBeforeSave: true });
-  createSendResponse(updatedUser, 200, res);
+  createSendResponse(updatedUser, 200, res,"user");
 });
 
 export const deleteMe = asyncErrorHandler(async (req, res, next) => {
@@ -92,5 +92,5 @@ export const updateMe = asyncErrorHandler(async (req, res, next) => {
   }
   user.isPremium = undefined;
   user.active = undefined;
-  createSendResponse(user, 200, res);
+  createSendResponse(user, 200, res,"user");
 });

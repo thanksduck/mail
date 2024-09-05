@@ -9,7 +9,7 @@ function signToken(id) {
   });
 }
 
-export default function createSendResponse(user, statusCode, res) {
+export default function createSendResponse(user, statusCode, res, responseName) {
   const token = signToken(user._id);
   const options = {
     maxAge: process.env.COOCKIE_EXPIRES,
@@ -18,16 +18,19 @@ export default function createSendResponse(user, statusCode, res) {
 
   if (process.env.NODE_ENV === "production") {
     options.secure = true;
+    options.sameSite = "strict";
   }
 
   res.cookie("jwt", token, options);
-  user.password = undefined;
-  user._id = undefined;
+  delete user.password
+  delete user._id;
   user.__v = undefined;
+  const data = {
+    [responseName]: user,
+  };
+
   res.status(statusCode).json({
     status: "success",
-    data: {
-      user,
-    },
+    data,
   });
 }

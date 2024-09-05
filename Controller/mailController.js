@@ -95,7 +95,7 @@ export const createRule = asyncErrorHandler(async (req, res, next) => {
 
     newRule.RuleId = newRule._id;
     newRule._id = req.user.id;
-    createSendResponse(newRule, 201, res);
+    createSendResponse(newRule, 201, res, "rule");
   } catch (error) {
     return next(new CustomError(`Operation failed: ${error.message}`, 500));
   }
@@ -114,7 +114,7 @@ export const readRule = asyncErrorHandler(async (req, res, next) => {
   }
   rule.ruleId = id;
   rule._id = req.user.id;
-  createSendResponse(rule, 200, res);
+  createSendResponse(rule, 200, res, "rule");
 });
 
 export const updateRule = asyncErrorHandler(async (req, res, next) => {
@@ -160,7 +160,7 @@ export const updateRule = asyncErrorHandler(async (req, res, next) => {
     await rule.save({ validateBeforeSave: false });
     rule._id = req.user.id;
     rule.ruleId = id;
-    createSendResponse(rule, 200, res);
+    createSendResponse(rule, 200, res, "rule");
   } catch (error) {
     return next(new CustomError(`Operation failed: ${error.message}`, 500));
   }
@@ -192,7 +192,7 @@ export const deleteRule = asyncErrorHandler(async (req, res, next) => {
     }
     await rule.deleteOne();
     const safeObject = { _id: req.user.id };
-    createSendResponse(safeObject, 204, res);
+    createSendResponse(safeObject, 204, res, "rule");
   } catch (error) {
     return next(new CustomError(`Operation failed: ${error.message}`, 500));
   }

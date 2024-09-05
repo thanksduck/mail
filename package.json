@@ -1,6 +1,6 @@
 {
-  "name": "mail",
-  "version": "1.0.0.4.9",
+  "name": "onealias",
+  "version": "1.0.0.5.9",
   "description": "One Alias Service, Forward to your own main address",
   "main": "server.js",
   "type": "module",
@@ -12,7 +12,7 @@
   "keywords": [
     "mail",
     "forward",
-    "one.20032003.xyz"
+    "oas.20032003.xyz"
   ],
   "author": "Shivam Shukla",
   "license": "MIT",

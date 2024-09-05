@@ -17,6 +17,7 @@ import hpp from "hpp";
 const app = express();
 
 app.use(helmet());
+app.use(hpp());
 app.use(cookieParser());
 if (process.env.NODE_ENV === "development") {
   console.log("Morgan is enabled");
@@ -45,9 +46,10 @@ app.use("/api/v1/user/:username", userRouter);
 app.use("/api/v1/mail", mailRouter);
 
 app.use("/health", (req, res) => {
+
   res.status(200).json({
     status: "success",
-    message: "version 1.0.0.4.9 server is running",
+    message: "version 1.0.0.5.9 server is running",
   });
 });
 
