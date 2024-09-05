@@ -23,11 +23,14 @@ fi
 # we will first check if docker compose is up and running
 if [ $(docker compose ps | grep -c "Up") -eq 0 ]; then
     echo "Docker compose is not running"
+    echo "Still we will destroy the docker compose"
+    docker system prune -a -f
     docker compose up -d --build
 else
     echo "Docker compose is running"
     docker compose down
-    echo "Docker compose is down"
+    docker system prune -a -f
+    echo "Docker compose was destroyed"
     docker compose up -d --build
 fi
 
