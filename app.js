@@ -49,7 +49,7 @@ app.use("/health", (req, res) => {
 
   res.status(200).json({
     status: "success",
-    message: "version 1.0.0.5.9 server is running",
+    message: "version 0.0.0.5.9 server is running",
   });
 });
 

@@ -21,7 +21,7 @@ export const signup = asyncErrorHandler(async (req, res, next) => {
   delete userObject.password;
   delete userObject.isPremium;
   delete userObject.active;
-  createSendResponse(userObject, 201, res);
+  createSendResponse(userObject, 201, res, "user");
 });
 
 export const login = asyncErrorHandler(async (req, res, next) => {
@@ -41,7 +41,7 @@ export const login = asyncErrorHandler(async (req, res, next) => {
   if (!(await user.correctPassword(password, user.password))) {
     return next(new CustomError("Incorrect email or password", 401));
   }
-  createSendResponse(user, 200, res);
+  createSendResponse(user, 200, res, "user");
 });
 
 export const protect = asyncErrorHandler(async (req, res, next) => {
@@ -98,15 +98,6 @@ export const forgetPassword = asyncErrorHandler(async (req, res, next) => {
   )}/api/v1/auth/resetPassword/${resetToken}`;
   const message = `Forgot your password? 
   Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
-  const htmlMessage = `
-  <div style="font-family: Arial, sans-serif; color: #333;">
-    <h1>Password Reset Request</h1>
-    <p><strong>Forgot your password?</strong> No worries! Click the link below to reset your password:</p>
-    <p><a href="${resetURL}" style="color: #1a73e8; text-decoration: none;">Reset your password</a></p>
-    <p>If you did not request this password reset, please ignore this email.</p>
-    <p>Best regards,<br><strong>One Alias Services</strong></p>
-  </div>
-`;
   try {
     await sendEmail({
       email: user.email,
@@ -150,7 +141,7 @@ export const resetPassword = asyncErrorHandler(async (req, res, next) => {
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   await user.save({ validateBeforeSave: true });
-  createSendResponse(user, 200, res);
+  createSendResponse(user, 200, res, "user");
 });
 
 export const logout = asyncErrorHandler(async (req, res, next) => {

@@ -1,6 +1,6 @@
 {
   "name": "onealias",
-  "version": "1.0.0.5.9",
+  "version": "0.0.0.5.9",
   "description": "One Alias Service, Forward to your own main address",
   "main": "server.js",
   "type": "module",
