@@ -22,9 +22,10 @@ export default function createSendResponse(user, statusCode, res, responseName) 
   }
 
   res.cookie("jwt", token, options);
-  delete user.password
-  delete user._id;
+  user.password = undefined;
+  user._id = undefined;
   user.__v = undefined;
+  user.active = undefined;
   const data = {
     [responseName]: user,
   };

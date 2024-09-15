@@ -1,3 +1,4 @@
+import packageJson from "./package.json";
 import { config } from "dotenv";
 if (process.env.NODE_ENV !== "production") {
   config({ path: "./config.env" });
@@ -46,15 +47,14 @@ app.use("/api/v1/user/:username", userRouter);
 app.use("/api/v1/mail", mailRouter);
 
 app.use("/health", (req, res) => {
-
   res.status(200).json({
     status: "success",
-    message: "version 0.0.0.5.9 server is running",
+    message: `version ${packageJson.version} server is running`,
   });
 });
 
 app.all("*", (req, res, next) => {
-  next(new CustomError(`Can't find ${req.originalUrl} on this server`, 404));
+  next(new CustomError(`Resource ${req.originalUrl} Not Found`, 404));
 });
 
 app.use(globalErrorHandler);

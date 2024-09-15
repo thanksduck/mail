@@ -1,4 +1,6 @@
 import { createTransport } from "nodemailer";
+const supportEmail = process.env.SUPPORT_EMAIL;
+const companyName = process.env.COMPANY_NAME;
 const sendEmail = async function (option) {
   // create a transporter
   const transporter = createTransport({
@@ -11,7 +13,7 @@ const sendEmail = async function (option) {
   });
 
   const emailOptions = {
-    from: "One Alias Support<no-reply@20032003.xyz>",
+    from: `${companyName} Support <${supportEmail}>`,
     to: option.email,
     subject: option.subject,
     text: option.message,

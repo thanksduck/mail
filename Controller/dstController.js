@@ -12,7 +12,7 @@ async function isAllowed(id) {
 
 export const listDestination = asyncErrorHandler(async (req, res, next) => {
   const username = req.user.username;
-  const destinations = await Destination.find({ username })
+  const destinations = await Destination.find({ username });
   if (!destinations) {
     return next(new CustomError("No Destination Found", 404));
   }
@@ -30,11 +30,14 @@ export const listDestination = asyncErrorHandler(async (req, res, next) => {
     destinationCount: destinations.length,
     destinations: responseArray,
   };
-  createSendResponse(safeResponse, 200, res,"destinations");
+  createSendResponse(safeResponse, 200, res, "destinations");
 });
 
 export const createDestination = asyncErrorHandler(async (req, res, next) => {
   const { destination, username } = req.body;
+  if (username !== req.user.username) {
+    return next(new CustomError("Not allowed", 401));
+  }
   const allowed = await isAllowed(req.user.id);
   if (!allowed) {
     return next(
@@ -53,7 +56,7 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
   try {
     const options = {
       method: "POST",
-      url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses`,
+      url: `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
         Authorization: `Bearer ${process.env.CF_API_KEY}`,
@@ -133,10 +136,10 @@ export const deleteDestination = asyncErrorHandler(async (req, res, next) => {
   try {
     const options = {
       method: "DELETE",
-      url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses/${cfId}`,
+      url: `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses/${cfId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
+        Authorization: `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
     };
@@ -172,15 +175,18 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
   if (localDestination.username !== username) {
     return next(new CustomError("Not allowed", 401));
   }
+  if (localDestination.verified) {
+    return next(new CustomError("Destination already verified", 400));
+  }
   const cfId = localDestination.destinationId;
 
   try {
     const options = {
       method: "GET",
-      url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses/${cfId}`,
+      url: `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses/${cfId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
+        Authorization: `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
     };
@@ -191,6 +197,7 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
     localDestination.verified = response.data.result.verified;
     await localDestination.save({ validateBeforeSave: false });
 
+    localDestination.destinationId = localDestination._id;
     localDestination._id = req.user.id;
     localDestination.verified = response.data.result.verified;
     delete localDestination.destinationId;

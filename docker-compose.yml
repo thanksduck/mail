@@ -1,5 +1,6 @@
 services:
   app:
+    container_name: oas-api
     build: .
     ports:
       - "127.0.0.1:3456:3456"

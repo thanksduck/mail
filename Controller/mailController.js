@@ -6,6 +6,19 @@ import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
 import axios from "axios";
 
+let selectZone;
+try {
+  selectZone = require("../Premium/selectZone.js").default;
+} catch (error) {
+  selectZone = (alias) => {
+    // you can define your selectzone and choose from different zones
+    // return process.env.ZONE_ID_DOMAIN1;
+    return null;
+  };
+}
+
+const rulesPath = "email/routing/rules";
+
 export const createRule = asyncErrorHandler(async (req, res, next) => {
   const { alias, destination } = req.body;
   const username = req.user.username;
@@ -31,12 +44,13 @@ export const createRule = asyncErrorHandler(async (req, res, next) => {
     );
   }
   try {
+    const zone = selectZone(alias) || process.env.CF_ZONE_ID;
     const options = {
       method: "POST",
-      url: `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/email/routing/rules`,
+      url: `${process.env.CF_URL_PREFIX}/zones/${zone}/${rulesPath}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
+        Authorization: `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
       data: {
@@ -133,12 +147,13 @@ export const updateRule = asyncErrorHandler(async (req, res, next) => {
     );
   }
   try {
+    const zone = selectZone(alias) || process.env.CF_ZONE_ID;
     const options = {
       method: "PUT",
-      url: `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/email/routing/rules/${rule.ruleId}`,
+      url: `${process.env.CF_URL_PREFIX}/zones/${zone}/${rulesPath}/${rule.ruleId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
+        Authorization: `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
       data: {
@@ -178,12 +193,13 @@ export const deleteRule = asyncErrorHandler(async (req, res, next) => {
     );
   }
   try {
+    const zone = selectZone(rule.alias) || process.env.CF_ZONE_ID;
     const options = {
       method: "DELETE",
-      url: `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/email/routing/rules/${rule.ruleId}`,
+      url: `${process.env.CF_URL_PREFIX}/zones/${zone}/${rulesPath}/${rule.ruleId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
+        Authorization: `Bearer ${process.env.CF_API_KEY}`,
       },
     };
     const response = await axios(options);

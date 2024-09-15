@@ -8,8 +8,16 @@ git pull
 if [ $? -eq 0 ]; then
     echo "Pull was successful"
 else
-    echo "Pull was not successful"
-    exit 1
+    echo "Pull was not successful, trying a force pull"
+    git fetch --all
+    git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
+    git pull
+    if [ $? -eq 0 ]; then
+        echo "Force pull was successful"
+    else
+        echo "Force pull was not successful"
+        exit 1
+    fi
 fi
 
 if [ -f config.env ]; then
