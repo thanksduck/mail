@@ -5,7 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "prod": "export VERSION=0.0.0.15.9 && node server.js",
+    "prod": "export NODE_ENV=production && VERSION=0.0.0.15.9 && node server.js",
     "start": "node server.js",
     "dev": "export NODE_ENV=development && nodemon server.js"
   },
