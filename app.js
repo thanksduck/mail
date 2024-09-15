@@ -1,4 +1,3 @@
-import packageJson from "./package.json";
 import { config } from "dotenv";
 if (process.env.NODE_ENV !== "production") {
   config({ path: "./config.env" });
@@ -49,7 +48,7 @@ app.use("/api/v1/mail", mailRouter);
 app.use("/health", (req, res) => {
   res.status(200).json({
     status: "success",
-    message: `version ${packageJson.version} server is running`,
+    message: `version ${process.env.VERSION || "unknown"} server is running`,
   });
 });
 
