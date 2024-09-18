@@ -60,6 +60,9 @@ export const protect = asyncErrorHandler(async (req, res, next) => {
     );
   }
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  if(!decoded){
+    return next(new CustomError("Authentication Error", 401));
+  }
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) {
     return next(

@@ -107,7 +107,7 @@ export const createRule = asyncErrorHandler(async (req, res, next) => {
       { new: true, validateBeforeSave: false }
     );
 
-    newRule.RuleId = newRule._id;
+    newRule.ruleId = newRule._id;
     newRule._id = req.user.id;
     createSendResponse(newRule, 201, res, "rule");
   } catch (error) {

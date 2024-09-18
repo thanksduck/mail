@@ -123,6 +123,7 @@ The Cloudflare API key can be generated from the Cloudflare dashboard. [Learn ho
 
 - `CF_EMAIL`: Required Cloudflare email.
 - `CF_API_KEY`: Required Cloudflare API key.
+- `CF_ACCOUTN_ID`: Required Cloudflare Account ID
 - `CF_ZONE_ID`: Required Cloudflare zone ID.
 
 ### MongoDB Configuration
@@ -146,6 +147,8 @@ The Cloudflare API key can be generated from the Cloudflare dashboard. [Learn ho
 - `EMAIL_PASSWORD`: Required email password with the SMTP service.
 - `EMAIL_HOST`: Optional SMTP host.
 - `EMAIL_PORT`: Optional SMTP port.
+- `COMPANY_NAME`: Company Name to be sent in the Email Title
+- `SUPPORT_EMAIL`: Email address of the sender
 
 ### Rate Limiting
 
