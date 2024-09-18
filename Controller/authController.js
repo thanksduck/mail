@@ -59,10 +59,18 @@ export const protect = asyncErrorHandler(async (req, res, next) => {
       new CustomError("You are not logged in! Please login to get access.", 401)
     );
   }
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  if(!decoded){
-    return next(new CustomError("Authentication Error", 401));
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return next(
+      new CustomError(
+        "Your Login Session has been expired. Please Login Again.",
+        401
+      )
+    );
   }
+
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) {
     return next(
