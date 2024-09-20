@@ -16,6 +16,9 @@ import rateLimit from "express-rate-limit";
 import hpp from "hpp";
 const app = express();
 
+app.set('trust proxy', 1 /* number of proxies between user and server */)
+app.get('/ip', (request, response) => response.send(request.ip))
+
 app.use(helmet());
 app.use(hpp());
 app.use(cookieParser());
