@@ -29,3 +29,8 @@ lerna-debug.log*
 
 # Secret Functions
 Premium
+
+# bun package manager for the project
+bun.lockb
+
+curl-tests/cookie.txt

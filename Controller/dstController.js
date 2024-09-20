@@ -10,6 +10,10 @@ async function isAllowed(id) {
   return user.isPremium || user.destinationCount < 2;
 }
 
+const distPath = "email/routing/addresses";
+const cfUrl = process.env.CF_URL_PREFIX;
+const cfAcId = process.env.CF_ACCOUNT_ID;
+
 export const listDestination = asyncErrorHandler(async (req, res, next) => {
   const username = req.user.username;
   const destinations = await Destination.find({ username });
@@ -56,7 +60,7 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
   try {
     const options = {
       method: "POST",
-      url: `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses`,
+      url: `${cfUrl}/accounts/${cfAcId}/email/routing/addresses`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
         Authorization: `Bearer ${process.env.CF_API_KEY}`,
@@ -123,31 +127,48 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
 
 export const deleteDestination = asyncErrorHandler(async (req, res, next) => {
   const destinationId = req.params.id;
-  const username = req.user.username;
+  const { password } = req.body;
+
+  // Find the user and check password
+  const user = await User.findById(req.user.id).select("+password");
+  if (!user || !(await user.correctPassword(password, user.password))) {
+    return next(new CustomError("Your current password is wrong", 401));
+  }
+
+  // Find the destination
   const localDestination = await Destination.findById(destinationId);
   if (!localDestination) {
     return next(new CustomError("No Address Found", 404));
   }
-  if (localDestination.username !== username) {
+
+  // Check if user is allowed to delete
+  if (localDestination.username !== req.user.username) {
     return next(new CustomError("Not allowed", 401));
   }
+
   const cfId = localDestination.destinationId;
   const { destination } = localDestination;
+
+  // Try to delete the destination from Cloudflare
   try {
     const options = {
       method: "DELETE",
-      url: `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses/${cfId}`,
+      url: `${cfUrl}/accounts/${cfAcId}/${distPath}/${cfId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
-        Authorization: `Bearer ${process.env.CF_API_KEY}`,
+        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
     };
     const response = await axios(options);
-    if (response.data.success === false) {
+    if (!response.data.success) {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
+
+    // Delete destination locally
     await localDestination.deleteOne();
+
+    // Update user's destinations
     await User.findByIdAndUpdate(
       req.user.id,
       {
@@ -156,8 +177,10 @@ export const deleteDestination = asyncErrorHandler(async (req, res, next) => {
       },
       { new: true, validateBeforeSave: false }
     );
-    const user = { _id: req.user.id };
-    createSendResponse(user, 204, res);
+
+    // Send the response
+    const updatedUser = { _id: req.user.id };
+    createSendResponse(updatedUser, 204, res);
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)
@@ -183,7 +206,7 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
   try {
     const options = {
       method: "GET",
-      url: `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/email/routing/addresses/${cfId}`,
+      url: `${cfUrl}/accounts/${cfAcId}/${distPath}/${cfId}`,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
         Authorization: `Bearer ${process.env.CF_API_KEY}`,

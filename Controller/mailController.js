@@ -8,11 +8,12 @@ import axios from "axios";
 
 let selectZone;
 try {
-  selectZone = require("../Premium/selectZone.js").default;
+  selectZone = (await import("../Premium/selectZone.js")).default;
 } catch (error) {
+  console.error("Failed to load premium selectZone function:", error);
   selectZone = (alias) => {
-    // you can define your selectzone and choose from different zones
-    // return process.env.ZONE_ID_DOMAIN1;
+
+    console.warn("Using default selectZone implementation");
     return null;
   };
 }

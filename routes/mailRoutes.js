@@ -23,6 +23,7 @@ router
   .get(protect, listDestination)
   .post(protect, createDestination);
 
+router.route("/destination/:id").delete(protect, deleteDestination);
 router.route("/rule").post(protect, createRule);
 
 router

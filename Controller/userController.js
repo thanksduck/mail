@@ -62,10 +62,16 @@ export const updatePassword = asyncErrorHandler(async (req, res, next) => {
 });
 
 export const deleteMe = asyncErrorHandler(async (req, res, next) => {
-  const user = await User.findByIdAndUpdate(req.user.id, { active: false });
+  const { currentPassword } = req.body;
+  const user = await User.findById(req.user.id).select("+password active");
   if (!user) {
     return next(new CustomError("User not found", 404));
   }
+  if (!(await user.correctPassword(currentPassword, user.password))) {
+    return next(new CustomError("Your current password is wrong", 401));
+  }
+  user.active = false;
+  await user.save({ validateBeforeSave: false });
   res.status(204).json({
     status: "success",
     data: null,
