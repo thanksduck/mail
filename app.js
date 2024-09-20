@@ -16,8 +16,8 @@ import rateLimit from "express-rate-limit";
 import hpp from "hpp";
 const app = express();
 
-app.set('trust proxy', 1 /* number of proxies between user and server */)
-app.get('/ip', (request, response) => response.send(request.ip))
+// app.set('trust proxy', 1 /* 1. serve by nginx 2. Cloudflare DNS proxy right now 1 is fine for me since i extract IP myself from cloudflare */)
+// app.get('/ip', (request, response) => response.send(request.ip))
 
 app.use(helmet());
 app.use(hpp());
@@ -27,23 +27,35 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+  const limiter = rateLimit({
+    max: process.env.RATE_LIMIT_MAX,
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false,
+    message: "Too many requests from this IP, please try again in an hour",
+  });
+
+  const authLimiter = rateLimit({
+    max: 10,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    message:
+      "Too many requests from this IP, please try again after 15 minutes",
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false,
+  });
+  app.use("/api", limiter);
+  app.use("/api/v1/auth", authLimiter);
+  app.use((req, res, next) => {
+    req.requestedAt = new Date().toISOString();
+    next();
+  });
   app.use(morgan("combined"));
 }
 
-const limiter = rateLimit({
-  max: process.env.RATE_LIMIT_MAX,
-  windowMs: 60 * 60 * 1000,
-  message: "Too many requests from this IP, please try again in an hour",
-});
-
-app.use("/api", limiter);
-
-app.use((req, res, next) => {
-  req.requestedAt = new Date().toISOString();
-  next();
-});
-
 app.use(express.json({ limit: "10kb" }));
+
+// ROUTES
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user/:username", userRouter);
 app.use("/api/v1/mail", mailRouter);
@@ -51,7 +63,9 @@ app.use("/api/v1/mail", mailRouter);
 app.use("/health", (req, res) => {
   res.status(200).json({
     status: "success",
-    message: `version ${process.env.VERSION || "unknown"} server is running`,
+    currentTime: req.requestedAt,
+    ipAddress: req.ip,
+    message: `version 0.0.0.20.9 server is running`,
   });
 });
 
