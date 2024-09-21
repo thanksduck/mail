@@ -32,5 +32,5 @@ Premium
 
 # bun package manager for the project
 bun.lockb
-
+# package-lock.json
 curl-tests/cookie.txt

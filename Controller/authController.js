@@ -17,11 +17,10 @@ export const signup = asyncErrorHandler(async (req, res, next) => {
   }
   const userbody = { username, name, email, password, passwordConfirm };
   const newUser = await User.create(userbody);
-  const userObject = newUser.toObject();
-  delete userObject.password;
-  delete userObject.isPremium;
-  delete userObject.active;
-  createSendResponse(userObject, 201, res, "user");
+  newUser.password = undefined;
+  newUser.active = undefined;
+  newUser.isPremium = undefined;
+  createSendResponse(newUser, 201, res, "user");
 });
 
 export const login = asyncErrorHandler(async (req, res, next) => {

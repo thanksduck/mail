@@ -26,6 +26,8 @@ if (process.env.NODE_ENV === "development") {
   console.log("Morgan is enabled");
   app.use(morgan("dev"));
 }
+
+// Production related middlewares
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
   const limiter = rateLimit({
@@ -46,11 +48,12 @@ if (process.env.NODE_ENV === "production") {
   });
   app.use("/api", limiter);
   app.use("/api/v1/auth", authLimiter);
-  app.use((req, res, next) => {
-    req.requestedAt = new Date().toISOString();
-    next();
-  });
-  app.use(morgan("combined"));
+  // app.use((req, res, next) => {
+  //   req.requestedAt = new Date().toISOString();
+  //   next();
+  // });
+  const customLogFormat = ":remote-addr [:date[web]] 'basic-auth->:remote-user' request-[ :method :url HTTP/:http-version ] response- [ :status :res[content-length]B - :response-time ms , total-:total-time ms ] extra- [ :referrer host->:req[host] :user-agent ]";
+  app.use(morgan(customLogFormat));
 }
 
 app.use(express.json({ limit: "10kb" }));
@@ -63,7 +66,6 @@ app.use("/api/v1/mail", mailRouter);
 app.use("/health", (req, res) => {
   res.status(200).json({
     status: "success",
-    currentTime: req.requestedAt,
     ipAddress: req.ip,
     message: `version 0.0.0.20.9 server is running`,
   });
