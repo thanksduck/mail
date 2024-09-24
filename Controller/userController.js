@@ -8,43 +8,11 @@ export const getUser = asyncErrorHandler(async (req, res, next) => {
   const { id } = req.user;
   const user = await User.findById(id);
   if (!user) {
-    return next(new CustomError("User not found", 404));
+    return next(new CustomError("User not found", 404,id));
   }
   createSendResponse(user, 200, res,"user");
 });
 
-export const getUserRouting = asyncErrorHandler(async (req, res, next) => {
-  const { username } = req.user;
-  const rules = await Rule.find({ username });
-  if (!rules) {
-    return next(new CustomError(`${username} has no Routing Rules`, 404));
-  }
-  const alias = [];
-  const destination = [];
-  const rulesArray = [];
-
-  rules.forEach((rule) => {
-    if (!alias.includes(rule.alias)) {
-      alias.push(rule.alias);
-    }
-    if (!destination.includes(rule.destination)) {
-      destination.push(rule.destination);
-    }
-    rulesArray.push({ alias: rule.alias, destination: rule.destination , ruleId: rule._id });
-  });
-  const aliasDetails = {
-    _id: req.user.id,
-    username,
-    alias,
-    aliasCount: alias.length,
-    destination,
-    destinationCount: destination.length,
-    rules: rulesArray,
-    rulesCount: rulesArray.length,
-  };
-
-  createSendResponse(aliasDetails, 200, res,"rules");
-});
 
 export const updatePassword = asyncErrorHandler(async (req, res, next) => {
   const { currentPassword, newPassword, newPasswordConfirm } = req.body;

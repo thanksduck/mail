@@ -5,22 +5,39 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import createSendResponse from "../utils/createSendResponse.js";
 import sendEmail from "../utils/sendEmail.js";
-import { config } from "dotenv";
-if (process.env.NODE_ENV !== "production") {
-  config({ path: "../config.env" });
-}
 
 export const signup = asyncErrorHandler(async (req, res, next) => {
   const { username, name, email, password, passwordConfirm } = req.body;
+
   if (!username || !name || !email || !password || !passwordConfirm) {
     return next(new CustomError("Please provide all the required fields", 400));
   }
-  const userbody = { username, name, email, password, passwordConfirm };
-  const newUser = await User.create(userbody);
-  newUser.password = undefined;
-  newUser.active = undefined;
-  newUser.isPremium = undefined;
-  createSendResponse(newUser, 201, res, "user");
+
+  const userBody = { username, name, email, password, passwordConfirm };
+  const newUser = await User.create(userBody);
+
+  const id = newUser.id || newUser._id;
+  const {
+    username: safeUsername,
+    name: safeName,
+    email: safeEmail,
+    alias,
+    aliasCount,
+    destination,
+    destinationCount,
+  } = newUser;
+
+  const safeUser = {
+    username: safeUsername,
+    name: safeName,
+    email: safeEmail,
+    alias,
+    aliasCount,
+    destination,
+    destinationCount,
+  };
+
+  createSendResponse(safeUser, 201, res, "user", id);
 });
 
 export const login = asyncErrorHandler(async (req, res, next) => {
@@ -40,7 +57,26 @@ export const login = asyncErrorHandler(async (req, res, next) => {
   if (!(await user.correctPassword(password, user.password))) {
     return next(new CustomError("Incorrect email or password", 401));
   }
-  createSendResponse(user, 200, res, "user");
+  const id = user.id || user._id;
+  const {
+    username: safeUsername,
+    name: safeName,
+    email: safeEmail,
+    alias,
+    aliasCount,
+    destination,
+    destinationCount,
+  } = user;
+  const safeUser = {
+    username: safeUsername,
+    name: safeName,
+    email: safeEmail,
+    alias,
+    aliasCount,
+    destination,
+    destinationCount,
+  };
+  createSendResponse(safeUser, 200, res, "user", id);
 });
 
 export const protect = asyncErrorHandler(async (req, res, next) => {
@@ -151,7 +187,19 @@ export const resetPassword = asyncErrorHandler(async (req, res, next) => {
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   await user.save({ validateBeforeSave: true });
-  createSendResponse(user, 200, res, "user");
+  const id = newUser.id || newUser._id;
+  
+
+  const safeUser = {
+    username,
+    name,
+    email,
+    alias,
+    aliasCount,
+    destination,
+    destinationCount,
+  } = user;
+  createSendResponse(safeUser, 200, res, "user", id);
 });
 
 export const logout = asyncErrorHandler(async (req, res, next) => {

@@ -1,7 +1,3 @@
-import { config } from "dotenv";
-if (process.env.NODE_ENV !== "production") {
-  config({ path: "./config.env" });
-}
 import express from "express";
 import morgan from "morgan";
 import authRouter from "./routes/authRoutes.js";
@@ -16,8 +12,6 @@ import rateLimit from "express-rate-limit";
 import hpp from "hpp";
 const app = express();
 
-// app.set('trust proxy', 1 /* 1. serve by nginx 2. Cloudflare DNS proxy right now 1 is fine for me since i extract IP myself from cloudflare */)
-// app.get('/ip', (request, response) => response.send(request.ip))
 
 app.use(helmet());
 app.use(hpp());
@@ -27,7 +21,6 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-// Production related middlewares
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
   const limiter = rateLimit({
@@ -48,15 +41,11 @@ if (process.env.NODE_ENV === "production") {
   });
   app.use("/api", limiter);
   app.use("/api/v1/auth", authLimiter);
-  // app.use((req, res, next) => {
-  //   req.requestedAt = new Date().toISOString();
-  //   next();
-  // });
   const customLogFormat = ":remote-addr [:date[web]] 'basic-auth->:remote-user' request-[ :method :url HTTP/:http-version ] response- [ :status :res[content-length]B - :response-time ms , total-:total-time ms ] extra- [ :referrer host->:req[host] :user-agent ]";
   app.use(morgan(customLogFormat));
 }
 
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: "100kb" }));
 
 // ROUTES
 app.use("/api/v1/auth", authRouter);
@@ -67,7 +56,7 @@ app.use("/health", (req, res) => {
   res.status(200).json({
     status: "success",
     ipAddress: req.ip,
-    message: `version 0.0.0.20.9 server is running`,
+    message: `version 0.0.0.24.9 server is running`,
   });
 });
 

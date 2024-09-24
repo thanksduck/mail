@@ -1,9 +1,4 @@
 import { connect } from "mongoose";
-import { config } from "dotenv";
-if (process.env.NODE_ENV !== "production")
-{
-  config({ path: "./config.env" });
-}
 const PORT = process.env.PORT || 3456;
 connect(process.env.MONGO_URI, {})
   .then(() => {

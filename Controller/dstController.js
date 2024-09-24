@@ -28,13 +28,8 @@ export const listDestination = asyncErrorHandler(async (req, res, next) => {
       verified: destination.verified,
     });
   });
-  const safeResponse = {
-    _id: req.user.id,
-    username,
-    destinationCount: destinations.length,
-    destinations: responseArray,
-  };
-  createSendResponse(safeResponse, 200, res, "destinations");
+  const id = req.user.id || req.user._id;
+  createSendResponse(responseArray, 200, res, "destinations",id);
 });
 
 export const createDestination = asyncErrorHandler(async (req, res, next) => {
@@ -116,8 +111,8 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
       }
     );
     newDestination.destinationId = newDestination._id;
-    newDestination._id = req.user.id;
-    createSendResponse(newDestination, 201, res, "destination");
+    const id = req.user.id || req.user._id;
+    createSendResponse(newDestination, 201, res, "destination", id);
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)
@@ -221,10 +216,9 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
     await localDestination.save({ validateBeforeSave: false });
 
     localDestination.destinationId = localDestination._id;
-    localDestination._id = req.user.id;
+    const id = req.user.id || req.user._id;
     localDestination.verified = response.data.result.verified;
-    delete localDestination.destinationId;
-    createSendResponse(localDestination, 200, res, "destination");
+    createSendResponse(localDestination, 200, res, "destination" ,id);
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)
