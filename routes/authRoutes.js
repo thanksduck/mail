@@ -6,6 +6,9 @@ router
     .route("/signup")
     .post(signup);
 router
+    .route("/register")
+    .post(signup);
+router
     .route("/login")
     .post(login);
 router

@@ -1,5 +1,4 @@
 import User from "../Models/userModel.js";
-import Rule from "../Models/ruleModel.js";
 import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
@@ -8,20 +7,20 @@ export const getUser = asyncErrorHandler(async (req, res, next) => {
   const { id } = req.user;
   const user = await User.findById(id);
   if (!user) {
-    return next(new CustomError("User not found", 404,id));
+    return next(new CustomError("User not found", 404));
   }
   const safeUser = {
-    username,
-    name,
-    email,
-    alias,
-    aliasCount,
-    destination,
-    destinationCount,
-  } = user;
-  createSendResponse(safeUser, 200, res,"user" ,id);
-});
+    username: user.username,
+    name: user.name,
+    email: user.email,
+    alias: user.alias,
+    aliasCount: user.aliasCount,
+    destination: user.destination,
+    destinationCount: user.destinationCount,
+  };
 
+  createSendResponse(safeUser, 200, res, "user", id);
+});
 
 export const updatePassword = asyncErrorHandler(async (req, res, next) => {
   const { currentPassword, newPassword, newPasswordConfirm } = req.body;
@@ -37,28 +36,33 @@ export const updatePassword = asyncErrorHandler(async (req, res, next) => {
   const updatedUser = await user.save({ validateBeforeSave: true });
   const id = req.user.id || req.user._id || updatedUser.id || updatedUser._id;
   const safeUser = {
-    username,
-    name,
-    email,
-    alias,
-    aliasCount,
-    destination,
-    destinationCount,
-  } = user;
-  createSendResponse(safeUser, 200, res,"user",id);
+    username: user.username,
+    name: user.name,
+    email: user.email,
+    alias: user.alias,
+    aliasCount: user.aliasCount,
+    destination: user.destination,
+    destinationCount: user.destinationCount,
+  };
+  createSendResponse(safeUser, 200, res, "user", id);
 });
 
 export const deleteMe = asyncErrorHandler(async (req, res, next) => {
-  const { currentPassword } = req.body;
+  const { password } = req.body;
+  if (!password) {
+    return next(new CustomError("Please provide your current password", 400));
+  }
   const user = await User.findById(req.user.id).select("+password active");
   if (!user) {
     return next(new CustomError("User not found", 404));
   }
-  if (!(await user.correctPassword(currentPassword, user.password))) {
+  if (!(await user.correctPassword(password, user.password))) {
     return next(new CustomError("Your current password is wrong", 401));
   }
   user.active = false;
   await user.save({ validateBeforeSave: false });
+  console.log(`User ${user.username} deleted`);
+  res.clearCookie('jwt');
   res.status(204).json({
     status: "success",
     data: null,
@@ -84,13 +88,13 @@ export const updateMe = asyncErrorHandler(async (req, res, next) => {
     return next(new CustomError("User not found", 404));
   }
   const safeUser = {
-    username,
-    name,
-    email,
-    alias,
-    aliasCount,
-    destination,
-    destinationCount,
-  } = user;
-  createSendResponse(safeUser, 200, res,"user",req.user.id);
+    username: user.username,
+    name: user.name,
+    email: user.email,
+    alias: user.alias,
+    aliasCount: user.aliasCount,
+    destination: user.destination,
+    destinationCount: user.destinationCount,
+  };
+  createSendResponse(safeUser, 200, res, "user", req.user.id);
 });
