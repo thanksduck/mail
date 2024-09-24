@@ -10,7 +10,16 @@ export const getUser = asyncErrorHandler(async (req, res, next) => {
   if (!user) {
     return next(new CustomError("User not found", 404,id));
   }
-  createSendResponse(user, 200, res,"user");
+  const safeUser = {
+    username,
+    name,
+    email,
+    alias,
+    aliasCount,
+    destination,
+    destinationCount,
+  } = user;
+  createSendResponse(safeUser, 200, res,"user" ,id);
 });
 
 
@@ -26,7 +35,17 @@ export const updatePassword = asyncErrorHandler(async (req, res, next) => {
   user.password = newPassword;
   user.passwordConfirm = newPasswordConfirm;
   const updatedUser = await user.save({ validateBeforeSave: true });
-  createSendResponse(updatedUser, 200, res,"user");
+  const id = req.user.id || req.user._id || updatedUser.id || updatedUser._id;
+  const safeUser = {
+    username,
+    name,
+    email,
+    alias,
+    aliasCount,
+    destination,
+    destinationCount,
+  } = user;
+  createSendResponse(safeUser, 200, res,"user",id);
 });
 
 export const deleteMe = asyncErrorHandler(async (req, res, next) => {
@@ -64,7 +83,14 @@ export const updateMe = asyncErrorHandler(async (req, res, next) => {
   if (!user) {
     return next(new CustomError("User not found", 404));
   }
-  user.isPremium = undefined;
-  user.active = undefined;
-  createSendResponse(user, 200, res,"user");
+  const safeUser = {
+    username,
+    name,
+    email,
+    alias,
+    aliasCount,
+    destination,
+    destinationCount,
+  } = user;
+  createSendResponse(safeUser, 200, res,"user",req.user.id);
 });
