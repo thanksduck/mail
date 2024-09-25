@@ -7,7 +7,7 @@ import axios from "axios";
 
 async function isAllowed(id) {
   const user = await User.findById(id).select("+isPremium");
-  return user.isPremium || user.destinationCount < 2;
+  return user.isPremium || user.destinationCount < 1;
 }
 
 const distPath = "email/routing/addresses";

@@ -4,9 +4,10 @@ import Destination from "../Models/dstModel.js";
 import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
-import axios from "axios";
 
-const fullUrl = `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/d1/database/${process.env.CF_DB_ID}/query`;
+import { d1Query } from "../utils/prepareRequest.js";
+import { sendRule } from "../utils/safeResponseObject.js";
+
 
 export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
   let { alias, destination } = req.body;
@@ -18,7 +19,6 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
   alias = alias.toLowerCase();
   destination = destination.toLowerCase();
   const username = req.user.username;
-  alias = alias.toLowerCase();
   const validDestination = await Destination.findOne({ destination });
   if (!validDestination || validDestination.username !== username) {
     return next(new CustomError("Destination Not Found", 401));
@@ -42,38 +42,13 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
   }
   try {
     const domain = alias.split("@")[1];
-    const options = {
-      method: "POST",
-      url: fullUrl,
-      headers: {
-        "X-Auth-Email": process.env.CF_EMAIL,
-        Authorization: `Bearer ${process.env.CF_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      data: {
-        sql: `
-          INSERT INTO rules (alias, destination, username, domain)
-          VALUES (?, ?, ?,?)
-        `,
-        params: [
-          alias,
-          destination,
-          username,
-          // new Date(),
-          // `Automated - created by ${username}`,
-          domain,
-        ],
-      },
-    };
 
-    const response = await axios(options);
+    const response = await d1Query("INSERT INTO rules (alias, destination, username, domain) VALUES (?, ?, ?, ?)", [alias, destination, username, domain]);
     if (response.success === false) {
       return next(
         new CustomError(`${response.errors[0]} and ${response.message}`, 400)
       );
     }
-
-    // console.log(response.result);
 
     const newRule = await Rule.create({
       alias,
@@ -114,14 +89,7 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
       ],
       { new: true, validateBeforeSave: false }
     );
-    const safeRule = {
-      alias: newRule.alias,
-      destination: newRule.destination,
-      username: newRule.username,
-      ruleId: newRule._id,
-      name: newRule.name,
-      // enabled: newRule.enabled,
-    };
+    const safeRule = sendRule(newRule);
     const id = req.user.id || req.user._id;
     createSendResponse(safeRule, 201, res, "rule", id);
   } catch (error) {
@@ -131,10 +99,15 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
 
 export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
   const id = req.params.id;
-  const rule = await Rule.findById(id);
+  let rule;
+  try {
+    rule = await Rule.findById(id);
+  } catch (error) {
+    return next(new CustomError(`Rule Does not Found`, 404));
+  }
   const oldAlias = rule.alias;
   const oldDestination = rule.destination;
-  if (!rule) {
+  if (!rule.enabled) {
     return next(new CustomError("Rule not found", 404));
   }
   if (rule.username !== req.user.username) {
@@ -150,33 +123,17 @@ export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
   }
   try {
     const domain = alias.split("@")[1];
-    const options = {
-      method: "POST",
-      url: fullUrl,
-      headers: {
-        "X-Auth-Email": process.env.CF_EMAIL,
-        Authorization: `Bearer ${process.env.CF_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      data: {
-        sql: `
-          UPDATE rules SET active = 0 WHERE alias = ?;
-          INSERT INTO rules (alias, destination, username, domain)
-          VALUES (?, ?, ?, ?);
-        `,
-        params: [
-          rule.ruleId, // For the UPDATE statement
-          alias,
-          destination,
-          rule.username,
-          domain, // For the INSERT statement
-        ],
-      },
-    };
-    const response = await axios(options);
-    if (response.data.success === false) {
-      return next(new CustomError(response.data.errors[0].message, 400));
+    // First API call to update the existing rule to inactive
+    const updateResponse = await d1Query("UPDATE rules SET active = false WHERE alias = ?", [rule.ruleId]);
+    if (updateResponse.data.success === false) {
+      return next(new CustomError(updateResponse.data.errors[0].message, 400));
     }
+    // Second API call to insert the new rule
+    const insertResponse = await d1Query("INSERT INTO rules (alias, destination, username, domain) VALUES (?, ?, ?, ?)", [alias, destination, rule.username, domain]);
+    if (insertResponse.data.success === false) {
+      return next(new CustomError(insertResponse.data.errors[0].message, 400));
+    }
+
     rule.alias = alias;
     rule.destination = destination;
     rule.name = `Automated - created by ${rule.username}`;
@@ -225,14 +182,7 @@ export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
     if (!updatedUser) {
       throw new CustomError("User not found or update failed", 404);
     }
-    const safeRule = {
-      alias,
-      destination,
-      username: rule.username,
-      ruleId: id,
-      name: rule.name,
-      // enabled: newRule.enabled,
-    };
+    const safeRule = sendRule(rule);
     const lid = req.user.id || req.user._id;
     createSendResponse(safeRule, 200, res, "rule", lid);
   } catch (error) {
@@ -247,7 +197,7 @@ export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
     return next(new CustomError("Rule not found", 404));
   }
 
-  const { alias, destination, username } = rule;
+  const { alias, username } = rule;
 
   if (username !== req.user.username) {
     return next(
@@ -255,22 +205,7 @@ export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
     );
   }
   try {
-    const options = {
-      method: "POST",
-      url: fullUrl,
-      headers: {
-        "X-Auth-Email": process.env.CF_EMAIL,
-        Authorization: `Bearer ${process.env.CF_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      data: {
-        sql: `
-          UPDATE rules SET active = 0 WHERE alias = ?;
-        `,
-        params: [alias],
-      },
-    };
-    const response = await axios(options);
+    const response = await d1Query("UPDATE rules SET active = 0 WHERE alias = ?", [alias]);
     if (response.data.success === false) {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
@@ -281,15 +216,19 @@ export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
       {
         $pull: {
           alias: alias,
-        },
-        $set: { aliasCount: { $size: "$alias" } },
+        }
       },
       { new: true, validateBeforeSave: false }
     );
-
+    
     if (!updatedUser) {
       throw new CustomError("User not found or Deletion failed", 404);
     }
+    if (updatedUser) {
+      updatedUser.aliasCount = updatedUser.alias.length;
+      await updatedUser.save({ new: true, validateBeforeSave: false });
+    }
+
     const id = req.user.id || req.user._id;
     createSendResponse(null, 204, res, "rule", id);
   } catch (error) {

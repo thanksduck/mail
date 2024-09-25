@@ -5,6 +5,7 @@ import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
 import axios from "axios";
+import { sendRule } from "../utils/safeResponseObject.js";
 
 let selectZone;
 try {
@@ -41,16 +42,6 @@ export const listRules = asyncErrorHandler(async (req, res, next) => {
       rulesArray.push({ alias: rule.alias, destination: rule.destination, ruleId: rule._id });
     }
   });
-  // const aliasDetails = {
-  //   _id: req.user.id,
-  //   username,
-  //   alias,
-  //   aliasCount: alias.length,
-  //   destination,
-  //   destinationCount: destination.length,
-  //   rules: rulesArray,
-  //   rulesCount: rulesArray.length,
-  // };
 
   createSendResponse(rulesArray, 200, res,"rules",req.user.id);
 });
@@ -143,14 +134,7 @@ export const createRule = asyncErrorHandler(async (req, res, next) => {
       { new: true, validateBeforeSave: false }
     );
 
-    const safeRule = {
-      alias: newRule.alias,
-      destination: newRule.destination,
-      username: newRule.username,
-      ruleId: newRule.ruleId,
-      name: newRule.name,
-      enabled: newRule.enabled,
-    };
+    const safeRule = sendRule(newRule);
     const id = req.user.id || req.user._id;
     createSendResponse(safeRule, 201, res, "rule",id);
   } catch (error) {
@@ -169,14 +153,7 @@ export const readRule = asyncErrorHandler(async (req, res, next) => {
       new CustomError("You are not authorized to access this rule", 401)
     );
   }
-  const safeRule = {
-    alias: rule.alias,
-    destination: rule.destination,
-    username: rule.username,
-    ruleId: id,
-    name: rule.name,
-    // enabled: newRule.enabled,
-  };
+  const safeRule = sendRule(rule);
   const lid = req.user.id || req.user._id;
   createSendResponse(safeRule, 200, res, "rule",lid);
 });
@@ -223,14 +200,7 @@ export const updateRule = asyncErrorHandler(async (req, res, next) => {
     rule.name = response.data.result.name;
     rule.enabled = response.data.enabled;
     await rule.save({ validateBeforeSave: false });
-    const safeRule = {
-      alias: rule.alias,
-      destination: rule.destination,
-      username: rule.username,
-      ruleId: id,
-      name: rule.name,
-      // enabled: newRule.enabled,
-    };
+    const safeRule = sendRule(rule);
     const lid = req.user.id || req.user._id;
     createSendResponse(safeRule, 200, res, "rule",lid);
   } catch (error) {
