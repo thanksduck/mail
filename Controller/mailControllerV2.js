@@ -6,58 +6,19 @@ import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
 import axios from "axios";
 
-let selectZone;
-try {
-  selectZone = (await import("../Premium/selectZone.js")).default;
-} catch (error) {
-  console.error("Failed to load premium selectZone function:", error);
-  selectZone = (alias) => {
+const fullUrl = `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/d1/database/${process.env.CF_DB_ID}/query`;
 
-    console.warn("Using default selectZone implementation");
-    return null;
-  };
-}
-
-const rulesPath = "email/routing/rules";
-
-export const listRules = asyncErrorHandler(async (req, res, next) => {
-  const { username } = req.user;
-  const rules = await Rule.find({ username });
-  if (!rules) {
-    return next(new CustomError(`${username} has no Routing Rules`, 404));
+export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
+  let { alias, destination } = req.body;
+  if (!alias || !destination) {
+    return next(
+      new CustomError("Required fields are missing, alias and destination", 400)
+    );
   }
-  const alias = [];
-  const destination = [];
-  const rulesArray = [];
-
-  rules.forEach((rule) => {
-    if (rule.enabled) {
-      if (!alias.includes(rule.alias)) {
-        alias.push(rule.alias);
-      }
-      if (!destination.includes(rule.destination)) {
-        destination.push(rule.destination);
-      }
-      rulesArray.push({ alias: rule.alias, destination: rule.destination, ruleId: rule._id });
-    }
-  });
-  // const aliasDetails = {
-  //   _id: req.user.id,
-  //   username,
-  //   alias,
-  //   aliasCount: alias.length,
-  //   destination,
-  //   destinationCount: destination.length,
-  //   rules: rulesArray,
-  //   rulesCount: rulesArray.length,
-  // };
-
-  createSendResponse(rulesArray, 200, res,"rules",req.user.id);
-});
-
-export const createRule = asyncErrorHandler(async (req, res, next) => {
-  const { alias, destination } = req.body;
+  alias = alias.toLowerCase();
+  destination = destination.toLowerCase();
   const username = req.user.username;
+  alias = alias.toLowerCase();
   const validDestination = await Destination.findOne({ destination });
   if (!validDestination || validDestination.username !== username) {
     return next(new CustomError("Destination Not Found", 401));
@@ -80,36 +41,47 @@ export const createRule = asyncErrorHandler(async (req, res, next) => {
     );
   }
   try {
-    const zone = selectZone(alias) || process.env.CF_ZONE_ID;
+    const domain = alias.split("@")[1];
     const options = {
       method: "POST",
-      url: `${process.env.CF_URL_PREFIX}/zones/${zone}/${rulesPath}`,
+      url: fullUrl,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
         Authorization: `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
       data: {
-        actions: [{ type: "forward", value: [destination] }],
-        enabled: true,
-        matchers: [{ field: "to", type: "literal", value: alias }],
-        name: `Automated - created by ${username}`,
-        priority: 0,
+        sql: `
+          INSERT INTO rules (alias, destination, username, domain)
+          VALUES (?, ?, ?,?)
+        `,
+        params: [
+          alias,
+          destination,
+          username,
+          // new Date(),
+          // `Automated - created by ${username}`,
+          domain,
+        ],
       },
     };
 
     const response = await axios(options);
-    if (response.data.success === false) {
-      return next(new CustomError(response.data.errors[0].message, 400));
+    if (response.success === false) {
+      return next(
+        new CustomError(`${response.errors[0]} and ${response.message}`, 400)
+      );
     }
+
+    // console.log(response.result);
 
     const newRule = await Rule.create({
       alias,
       destination,
       username,
-      ruleId: response.data.result.id,
-      name: response.data.result.name,
-      enabled: response.data.enabled,
+      ruleId: alias,
+      name: `Automated - created by ${username}`,
+      enabled: true,
     });
 
     await User.findByIdAndUpdate(
@@ -142,76 +114,63 @@ export const createRule = asyncErrorHandler(async (req, res, next) => {
       ],
       { new: true, validateBeforeSave: false }
     );
-
     const safeRule = {
       alias: newRule.alias,
       destination: newRule.destination,
       username: newRule.username,
-      ruleId: newRule.ruleId,
+      ruleId: newRule._id,
       name: newRule.name,
-      enabled: newRule.enabled,
+      // enabled: newRule.enabled,
     };
     const id = req.user.id || req.user._id;
-    createSendResponse(safeRule, 201, res, "rule",id);
+    createSendResponse(safeRule, 201, res, "rule", id);
   } catch (error) {
     return next(new CustomError(`Operation failed: ${error.message}`, 500));
   }
 });
 
-export const readRule = asyncErrorHandler(async (req, res, next) => {
+export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
   const id = req.params.id;
   const rule = await Rule.findById(id);
-  if (!rule) {
-    return next(new CustomError("Rule not found", 404));
-  }
-  if (rule.username !== req.user.username || !rule.enabled) {
-    return next(
-      new CustomError("You are not authorized to access this rule", 401)
-    );
-  }
-  const safeRule = {
-    alias: rule.alias,
-    destination: rule.destination,
-    username: rule.username,
-    ruleId: id,
-    name: rule.name,
-    // enabled: newRule.enabled,
-  };
-  const lid = req.user.id || req.user._id;
-  createSendResponse(safeRule, 200, res, "rule",lid);
-});
-
-export const updateRule = asyncErrorHandler(async (req, res, next) => {
-  const id = req.params.id;
-  const rule = await Rule.findById(id);
+  const oldAlias = rule.alias;
+  const oldDestination = rule.destination;
   if (!rule) {
     return next(new CustomError("Rule not found", 404));
   }
   if (rule.username !== req.user.username) {
     return next(new CustomError("Unauthorized", 401));
   }
-  const { alias, destination } = req.body;
+  let { alias, destination } = req.body;
+  alias = alias.toLowerCase();
+  destination = destination.toLowerCase();
   if (!alias || !destination) {
     return next(
       new CustomError("Required fields are missing, alias and destination", 400)
     );
   }
   try {
-    const zone = selectZone(alias) || process.env.CF_ZONE_ID;
+    const domain = alias.split("@")[1];
     const options = {
-      method: "PUT",
-      url: `${process.env.CF_URL_PREFIX}/zones/${zone}/${rulesPath}/${rule.ruleId}`,
+      method: "POST",
+      url: fullUrl,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
         Authorization: `Bearer ${process.env.CF_API_KEY}`,
         "Content-Type": "application/json",
       },
       data: {
-        actions: [{ type: "forward", value: [destination] }],
-        enabled: true,
-        matchers: [{ field: "to", type: "literal", value: alias }],
-        name: `Automated - created by ${req.user.username}`,
-        priority: 0,
+        sql: `
+          UPDATE rules SET active = 0 WHERE alias = ?;
+          INSERT INTO rules (alias, destination, username, domain)
+          VALUES (?, ?, ?, ?);
+        `,
+        params: [
+          rule.ruleId, // For the UPDATE statement
+          alias,
+          destination,
+          rule.username,
+          domain, // For the INSERT statement
+        ],
       },
     };
     const response = await axios(options);
@@ -220,52 +179,119 @@ export const updateRule = asyncErrorHandler(async (req, res, next) => {
     }
     rule.alias = alias;
     rule.destination = destination;
-    rule.name = response.data.result.name;
-    rule.enabled = response.data.enabled;
+    rule.name = `Automated - created by ${rule.username}`;
+    rule.enabled = true;
+    rule.ruleId = alias;
     await rule.save({ validateBeforeSave: false });
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      [
+        {
+          $set: {
+            alias: {
+              $map: {
+                input: "$alias",
+                as: "item",
+                in: {
+                  $cond: [{ $eq: ["$$item", oldAlias] }, alias, "$$item"],
+                },
+              },
+            },
+            destination: {
+              $map: {
+                input: "$destination",
+                as: "item",
+                in: {
+                  $cond: [
+                    { $eq: ["$$item", oldDestination] },
+                    destination,
+                    "$$item",
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          $set: {
+            aliasCount: { $size: "$alias" },
+            destinationCount: { $size: "$destination" },
+          },
+        },
+      ],
+      { new: true, validateBeforeSave: false }
+    );
+
+    if (!updatedUser) {
+      throw new CustomError("User not found or update failed", 404);
+    }
     const safeRule = {
-      alias: rule.alias,
-      destination: rule.destination,
+      alias,
+      destination,
       username: rule.username,
       ruleId: id,
       name: rule.name,
       // enabled: newRule.enabled,
     };
     const lid = req.user.id || req.user._id;
-    createSendResponse(safeRule, 200, res, "rule",lid);
+    createSendResponse(safeRule, 200, res, "rule", lid);
   } catch (error) {
     return next(new CustomError(`Operation failed: ${error.message}`, 500));
   }
 });
 
-export const deleteRule = asyncErrorHandler(async (req, res, next) => {
+export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
   const id = req.params.id;
   const rule = await Rule.findById(id);
   if (!rule) {
     return next(new CustomError("Rule not found", 404));
   }
-  if (rule.username !== req.user.username) {
+
+  const { alias, destination, username } = rule;
+
+  if (username !== req.user.username) {
     return next(
       new CustomError("You are not authorized to access this rule", 401)
     );
   }
   try {
-    const zone = selectZone(rule.alias) || process.env.CF_ZONE_ID;
     const options = {
-      method: "DELETE",
-      url: `${process.env.CF_URL_PREFIX}/zones/${zone}/${rulesPath}/${rule.ruleId}`,
+      method: "POST",
+      url: fullUrl,
       headers: {
         "X-Auth-Email": process.env.CF_EMAIL,
         Authorization: `Bearer ${process.env.CF_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      data: {
+        sql: `
+          UPDATE rules SET active = 0 WHERE alias = ?;
+        `,
+        params: [alias],
       },
     };
     const response = await axios(options);
     if (response.data.success === false) {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
-    await rule.deleteOne();
-    const safeObject = { _id: req.user.id };
-    createSendResponse(safeObject, 204, res, "rule");
+    rule.enabled = false;
+    await rule.save({ validateBeforeSave: false });
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        $pull: {
+          alias: alias,
+        },
+        $set: { aliasCount: { $size: "$alias" } },
+      },
+      { new: true, validateBeforeSave: false }
+    );
+
+    if (!updatedUser) {
+      throw new CustomError("User not found or Deletion failed", 404);
+    }
+    const id = req.user.id || req.user._id;
+    createSendResponse(null, 204, res, "rule", id);
   } catch (error) {
     return next(new CustomError(`Operation failed: ${error.message}`, 500));
   }

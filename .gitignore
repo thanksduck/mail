@@ -34,3 +34,6 @@ Premium
 bun.lockb
 # package-lock.json
 curl-tests/cookie.txt
+
+# keys
+*.pem

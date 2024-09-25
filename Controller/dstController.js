@@ -174,8 +174,9 @@ export const deleteDestination = asyncErrorHandler(async (req, res, next) => {
     );
 
     // Send the response
-    const updatedUser = { _id: req.user.id };
-    createSendResponse(updatedUser, 204, res);
+    // const updatedUser = { _id: req.user.id };
+    const lid = req.user.id || req.user._id;
+    createSendResponse(null, 204, res,lid);
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)
