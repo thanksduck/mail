@@ -16,6 +16,11 @@ const destSchema = new mongoose.Schema({
     type: String,
     required: [true, "ID from the Cloudflare Portal"],
   },
+  domain: {
+    type: String,
+    required: [true, "Domain Field is Required"],
+    lowercase: true,
+  },
   created: {
     type: Date,
     select: false,

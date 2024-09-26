@@ -2,6 +2,7 @@ import User from "../Models/userModel.js";
 import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
+import { sendUser } from "../utils/safeResponseObject.js";
 
 export const getUser = asyncErrorHandler(async (req, res, next) => {
   const { id } = req.user;
@@ -9,16 +10,7 @@ export const getUser = asyncErrorHandler(async (req, res, next) => {
   if (!user) {
     return next(new CustomError("User not found", 404));
   }
-  const safeUser = {
-    username: user.username,
-    name: user.name,
-    email: user.email,
-    alias: user.alias,
-    aliasCount: user.aliasCount,
-    destination: user.destination,
-    destinationCount: user.destinationCount,
-  };
-
+  const safeUser = sendUser(user);
   createSendResponse(safeUser, 200, res, "user", id);
 });
 

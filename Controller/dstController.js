@@ -3,16 +3,14 @@ import User from "../Models/userModel.js";
 import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
-import axios from "axios";
+import { destinationRequest } from "../utils/prepareRequest.js";
+import { sendDestination } from "../utils/safeResponseObject.js";
 
 async function isAllowed(id) {
   const user = await User.findById(id).select("+isPremium");
   return user.isPremium || user.destinationCount < 1;
 }
 
-const distPath = "email/routing/addresses";
-const cfUrl = process.env.CF_URL_PREFIX;
-const cfAcId = process.env.CF_ACCOUNT_ID;
 
 export const listDestination = asyncErrorHandler(async (req, res, next) => {
   const username = req.user.username;
@@ -33,7 +31,11 @@ export const listDestination = asyncErrorHandler(async (req, res, next) => {
 });
 
 export const createDestination = asyncErrorHandler(async (req, res, next) => {
-  const { destination, username } = req.body;
+  const { destination, username ,domain} = req.body;
+  if (!destination || !username || !domain) {
+    return next(new CustomError("Destination, username and domain are required", 400));
+  }
+  console.log("createDestination was called",destination,username,domain);
   if (username !== req.user.username) {
     return next(new CustomError("Not allowed", 401));
   }
@@ -53,20 +55,7 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
     );
   }
   try {
-    const options = {
-      method: "POST",
-      url: `${cfUrl}/accounts/${cfAcId}/email/routing/addresses`,
-      headers: {
-        "X-Auth-Email": process.env.CF_EMAIL,
-        Authorization: `Bearer ${process.env.CF_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      data: {
-        email: destination,
-      },
-    };
-
-    const response = await axios(options);
+    const response = await destinationRequest("POST", domain, destination);
     if (response.data.success === false) {
       return next(
         new CustomError(
@@ -80,13 +69,14 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
     const newDestination = await Destination.create({
       destination,
       username,
+      domain,
       destinationId: response.data.result.id,
       created,
       modified,
       verified,
     });
 
-    const user = await User.findByIdAndUpdate(
+    await User.findByIdAndUpdate(
       req.user.id,
       [
         {
@@ -123,20 +113,19 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
 export const deleteDestination = asyncErrorHandler(async (req, res, next) => {
   const destinationId = req.params.id;
   const { password } = req.body;
-
-  // Find the user and check password
+  if (!password) {
+    return next(new CustomError("Password is required", 400));
+  }
   const user = await User.findById(req.user.id).select("+password");
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new CustomError("Your current password is wrong", 401));
   }
 
-  // Find the destination
   const localDestination = await Destination.findById(destinationId);
   if (!localDestination) {
     return next(new CustomError("No Address Found", 404));
   }
 
-  // Check if user is allowed to delete
   if (localDestination.username !== req.user.username) {
     return next(new CustomError("Not allowed", 401));
   }
@@ -144,39 +133,33 @@ export const deleteDestination = asyncErrorHandler(async (req, res, next) => {
   const cfId = localDestination.destinationId;
   const { destination } = localDestination;
 
-  // Try to delete the destination from Cloudflare
   try {
-    const options = {
-      method: "DELETE",
-      url: `${cfUrl}/accounts/${cfAcId}/${distPath}/${cfId}`,
-      headers: {
-        "X-Auth-Email": process.env.CF_EMAIL,
-        "Authorization": `Bearer ${process.env.CF_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-    };
-    const response = await axios(options);
+    
+    const response = await destinationRequest("DELETE", localDestination.domain, localDestination.destination,cfId);
     if (!response.data.success) {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
 
-    // Delete destination locally
     await localDestination.deleteOne();
 
-    // Update user's destinations
-    await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
       {
-        $pull: { destination: destination },
-        $set: { destinationCount: { $size: "$destination" } },
+        $pull: { destination: destination }
       },
       { new: true, validateBeforeSave: false }
     );
-
-    // Send the response
-    // const updatedUser = { _id: req.user.id };
+    
+    await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        $set: { destinationCount: updatedUser.destination.length }
+      },
+      { new: true, validateBeforeSave: false }
+    );
     const lid = req.user.id || req.user._id;
-    createSendResponse(null, 204, res,lid);
+
+    createSendResponse(null, 204, res ,"",lid);
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)
@@ -200,16 +183,8 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
   const cfId = localDestination.destinationId;
 
   try {
-    const options = {
-      method: "GET",
-      url: `${cfUrl}/accounts/${cfAcId}/${distPath}/${cfId}`,
-      headers: {
-        "X-Auth-Email": process.env.CF_EMAIL,
-        Authorization: `Bearer ${process.env.CF_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-    };
-    const response = await axios(options);
+    const response = await destinationRequest("GET", localDestination.domain, localDestination.destination,cfId);
+    // const response = await axios(options);
     if (response.data.success === false) {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
@@ -219,7 +194,8 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
     localDestination.destinationId = localDestination._id;
     const id = req.user.id || req.user._id;
     localDestination.verified = response.data.result.verified;
-    createSendResponse(localDestination, 200, res, "destination" ,id);
+    const safeDestination = sendDestination(localDestination);
+    createSendResponse(safeDestination, 200, res, "destination" ,id);
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)

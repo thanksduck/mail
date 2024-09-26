@@ -1,4 +1,4 @@
-// Preparing Axios request
+import { selectDestination } from "../Premium/selectZone.js";
 import axios from "axios";
 const fullUrl = `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/d1/database/${process.env.CF_DB_ID}/query`;
 
@@ -21,6 +21,7 @@ export const d1Query = (sql, params) => {
 export const routingRulesRequest = (method, alias , destination) => {
     const zone = selectZone(alias) || process.env.CF_ZONE_ID;
     const rulesPath = "rules";
+    console.log("routing rules path was run somehow");
     return axios({
         method,
         url: `${process.env.CF_URL_PREFIX}/zones/${zone}/${rulesPath}`,
@@ -38,3 +39,25 @@ export const routingRulesRequest = (method, alias , destination) => {
         },
     });
 }
+
+export const destinationRequest = (method, domain, destination,cfId) => {
+  const [email, account, key] = selectDestination(domain);
+  const url = !cfId ? `${process.env.CF_URL_PREFIX}/accounts/${account}/email/routing/addresses` : `${process.env.CF_URL_PREFIX}/accounts/${account}/email/routing/addresses/${cfId}`;
+  if(!email || !account || !key){
+    return null;
+  }
+  
+  return axios({
+    method,
+    url,
+    headers: {
+      "X-Auth-Email": email,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    data: {
+      email: destination,
+    },
+  });
+
+};
