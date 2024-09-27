@@ -27,9 +27,10 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
       new CustomError("Destination Not Verified Yet Check your mail/spam", 401)
     );
   }
-  if (alias.split("@")[1] !== validDestination.domain) {
+  // update this and check domain from hidden function named selectDomain as this will fail if alias is not in the format of alias@domain and rather alias@subdoamin.domain
+  if (!alias.split("@")[1].endsWith(validDestination.domain)) {
     return next(
-      new CustomError("Alias and Destination domain does not match", 400)
+      new CustomError("Alias from this Domain is not allowed", 400)
     );
   }
   const existingAlias = await Rule.findOne({ alias });
@@ -45,7 +46,7 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
     );
   }
   try {
-    const domain = alias.split("@")[1];
+
 
     // const response = await d1Query("INSERT INTO rules (alias, destination, username, domain) VALUES (?, ?, ?, ?)", [alias, destination, username, domain]);
     const response = await createRuleRequest(
@@ -145,9 +146,10 @@ export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
       new CustomError("Destination Not Verified Yet Check your mail/spam", 401)
     );
   }
-  if (alias.split("@")[1] !== validDestination.domain) {
+  // update this and check domain from hidden function named selectDomain as this will fail if alias is not in the format of alias@domain and rather
+  if (!alias.split("@")[1].endsWith(validDestination.domain)) {
     return next(
-      new CustomError("Alias and Destination domain does not match", 400)
+      new CustomError("Alias from this Domain is not allowed", 400)
     );
   }
   try {
