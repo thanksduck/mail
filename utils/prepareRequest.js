@@ -2,6 +2,30 @@ import { selectDestination } from "../Premium/selectZone.js";
 import axios from "axios";
 const fullUrl = `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/d1/database/${process.env.CF_DB_ID}/query`;
 
+
+const ruleUrl = `${process.env.RULE_URL_PREFIX}/rules`;
+
+export const createRuleRequest = (method, alias, destination, username) => {
+  const data = {
+    alias,
+    destination,
+    username,
+    domain: alias.split("@")[1],
+    // comment: `Created by ${username}`,
+  };
+  const url = method === "POST" ? ruleUrl : `${ruleUrl}/${data.domain}/${alias}`;
+  return axios({
+    method,
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.RULE_API_KEY}`,
+    },
+    data,
+  });
+};
+
+
 export const d1Query = (sql, params) => {
   return axios({
     method: "POST",

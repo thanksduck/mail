@@ -5,9 +5,8 @@ import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
 
-import { d1Query } from "../utils/prepareRequest.js";
+import { createRuleRequest, d1Query } from "../utils/prepareRequest.js";
 import { sendRule } from "../utils/safeResponseObject.js";
-
 
 export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
   let { alias, destination } = req.body;
@@ -28,6 +27,11 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
       new CustomError("Destination Not Verified Yet Check your mail/spam", 401)
     );
   }
+  if (alias.split("@")[1] !== validDestination.domain) {
+    return next(
+      new CustomError("Alias and Destination domain does not match", 400)
+    );
+  }
   const existingAlias = await Rule.findOne({ alias });
   if (existingAlias) {
     return next(new CustomError("Alias or Rule Already Exist", 400));
@@ -43,7 +47,14 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
   try {
     const domain = alias.split("@")[1];
 
-    const response = await d1Query("INSERT INTO rules (alias, destination, username, domain) VALUES (?, ?, ?, ?)", [alias, destination, username, domain]);
+    // const response = await d1Query("INSERT INTO rules (alias, destination, username, domain) VALUES (?, ?, ?, ?)", [alias, destination, username, domain]);
+    const response = await createRuleRequest(
+      "POST",
+      // domain,
+      alias,
+      destination,
+      username
+    );
     if (response.success === false) {
       return next(
         new CustomError(`${response.errors[0]} and ${response.message}`, 400)
@@ -108,7 +119,7 @@ export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
   const oldAlias = rule.alias;
   const oldDestination = rule.destination;
   if (!rule.enabled) {
-    return next(new CustomError("Rule not found", 404));
+    return next(new CustomError("Rule Does not found", 404));
   }
   if (rule.username !== req.user.username) {
     return next(new CustomError("Unauthorized", 401));
@@ -121,17 +132,50 @@ export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
       new CustomError("Required fields are missing, alias and destination", 400)
     );
   }
+  // check if destination is valid and verified and belongs to the user
+  const validDestination = await Destination.findOne({
+    destination,
+    username: req.user.username,
+  });
+  if (!validDestination) {
+    return next(new CustomError("Destination Not Found", 401));
+  }
+  if (!validDestination.verified) {
+    return next(
+      new CustomError("Destination Not Verified Yet Check your mail/spam", 401)
+    );
+  }
+  if (alias.split("@")[1] !== validDestination.domain) {
+    return next(
+      new CustomError("Alias and Destination domain does not match", 400)
+    );
+  }
   try {
-    const domain = alias.split("@")[1];
     // First API call to update the existing rule to inactive
-    const updateResponse = await d1Query("UPDATE rules SET active = false WHERE alias = ?", [rule.ruleId]);
-    if (updateResponse.data.success === false) {
-      return next(new CustomError(updateResponse.data.errors[0].message, 400));
+    const removeRule = await createRuleRequest(
+      "DELETE",
+      oldAlias,
+      oldDestination,
+      rule.username
+    );
+    if (removeRule.success === false) {
+      return next(
+        new CustomError(
+          `${removeRule.errors[0]} and ${removeRule.message}`,
+          400
+        )
+      );
     }
-    // Second API call to insert the new rule
-    const insertResponse = await d1Query("INSERT INTO rules (alias, destination, username, domain) VALUES (?, ?, ?, ?)", [alias, destination, rule.username, domain]);
-    if (insertResponse.data.success === false) {
-      return next(new CustomError(insertResponse.data.errors[0].message, 400));
+    const response = await createRuleRequest(
+      "POST",
+      alias,
+      destination,
+      rule.username
+    );
+    if (response.success === false) {
+      return next(
+        new CustomError(`${response.errors[0]} and ${response.message}`, 400)
+      );
     }
 
     rule.alias = alias;
@@ -197,7 +241,7 @@ export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
     return next(new CustomError("Rule not found", 404));
   }
 
-  const { alias, username } = rule;
+  const { alias, username, destination } = rule;
 
   if (username !== req.user.username) {
     return next(
@@ -205,22 +249,30 @@ export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
     );
   }
   try {
-    const response = await d1Query("UPDATE rules SET active = 0 WHERE alias = ?", [alias]);
+    // const response = await d1Query(
+    //   "UPDATE rules SET active = 0 WHERE alias = ?",
+    //   [alias]
+    // );
+    const response = await createRuleRequest(
+      "DELETE",
+      alias,
+      destination,
+      username
+    );
     if (response.data.success === false) {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
-    rule.enabled = false;
-    await rule.save({ validateBeforeSave: false });
+    await Rule.findByIdAndDelete(id);
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
       {
         $pull: {
           alias: alias,
-        }
+        },
       },
       { new: true, validateBeforeSave: false }
     );
-    
+
     if (!updatedUser) {
       throw new CustomError("User not found or Deletion failed", 404);
     }
