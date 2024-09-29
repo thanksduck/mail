@@ -1,27 +1,15 @@
-FROM node:lts-slim AS builder
-
-WORKDIR /app
-
-COPY package*.json ./
-
-RUN npm ci
-
-COPY . .
-
-RUN npm run build
-
 FROM node:lts-slim
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY package*.json ./
+COPY package.json ./
 
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
-COPY --from=builder /app/dist ./dist
+COPY . .
 
 EXPOSE 3456
 
-CMD ["npm", "start"]
+CMD ["npm", "run", "start"]
