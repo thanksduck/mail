@@ -193,7 +193,7 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
       {
         destinationEmail: localDestination.destination,
         domain: localDestination.domain,
-        verified: localDestination.verified,
+        verified: localDestination.verified ? true : false,
         _id: localDestination._id,
       }
     );

@@ -33,7 +33,7 @@ export const createRuleRequest = (method, alias, destination, username) => {
   const url =
     method === "POST"
       ? ruleUrl
-      : `${ruleUrl}/${domain}/${encodeURIComponent(alias)}`;
+      : `${ruleUrl}/${domain}/${alias}`;
 
   return axios({
     method,
