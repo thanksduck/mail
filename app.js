@@ -41,7 +41,7 @@ if (process.env.NODE_ENV === "production") {
   });
   app.use("/api", limiter);
   app.use("/api/v1/auth", authLimiter);
-  const customLogFormat = ":remote-addr [:date[web]] 'basic-auth->:remote-user' request-[ :method :url HTTP/:http-version ] response- [ :status :res[content-length]B - :response-time ms , total-:total-time ms ] extra- [ :referrer host->:req[host] :user-agent ]";
+  const customLogFormat = ":remote-addr [:date[web]] request-[ :method :url HTTP/:http-version ] response- [ :status :res[content-length]B - :response-time ms ] extra- [ :referrer ]";
   app.use(morgan(customLogFormat));
 }
 

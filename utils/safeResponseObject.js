@@ -7,10 +7,11 @@ export const sendRule = (rule) => {
 export const sendDestination = (destination) => {
   const { domain, username, created, modified, verified, _id, id } = destination;
   const destinationId = id || _id;
-  return { destination ,destinationId, domain, username, created, modified, verified };
+  return { destinationId, domain, username, created, modified, verified };
 }
 
 export const sendUser = (user) => {
      const { username, name, email, alias, aliasCount, destination, destinationCount } = user;
+     // alias and destination are arrays of objects, i want to remove the _id from those
      return { username, name, email, alias, aliasCount, destination, destinationCount };
   };

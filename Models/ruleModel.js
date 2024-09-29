@@ -1,11 +1,13 @@
 import mongoose from "mongoose";
 import validator from "validator";
-mongoose.ruleSchema = new mongoose.Schema({
-    alias:{
+
+const ruleSchema = new mongoose.Schema({
+    alias: {
         type: String,
         required: [true, "No Alias was provided"],
         lowercase: true,
-        validator: [validator.isEmail, "Alias Can Only be an Email Address"],
+        unique: [true, "Alias Already Exists"],
+        validate: [validator.isEmail, "Alias Can Only be an Email Address"],
     },
     ruleId: {
         type: String,
@@ -13,15 +15,11 @@ mongoose.ruleSchema = new mongoose.Schema({
     },
     username: {
         type: String,
-        required: [true, "username is must"],
+        required: [true, "Username is required"],
     },
     destination: {
         type: String,
-        required: [true, "destination address was not provided"],
-    },
-    created: {
-        type: Date,
-        default: Date.now(),
+        required: [true, "Destination address was not provided"],
     },
     name: {
         type: String,
@@ -30,9 +28,11 @@ mongoose.ruleSchema = new mongoose.Schema({
     enabled: {
         type: Boolean,
         default: true,
-    },
-});
+    }
+}, { timestamps: true });
 
+ruleSchema.index({ username: 1 });
 
-const Rule = mongoose.model("Rule", mongoose.ruleSchema);
+const Rule = mongoose.model("Rule", ruleSchema); 
+
 export default Rule;

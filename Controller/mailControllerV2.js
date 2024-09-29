@@ -1,5 +1,4 @@
 import Rule from "../Models/ruleModel.js";
-import User from "../Models/userModel.js";
 import Destination from "../Models/dstModel.js";
 import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
@@ -7,6 +6,8 @@ import createSendResponse from "../utils/createSendResponse.js";
 
 import { createRuleRequest, d1Query } from "../utils/prepareRequest.js";
 import { sendRule } from "../utils/safeResponseObject.js";
+
+import { addAlias, updateAlias, removeAlias } from "./userAlias.js";
 
 export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
   let { alias, destination } = req.body;
@@ -29,9 +30,7 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
   }
   // update this and check domain from hidden function named selectDomain as this will fail if alias is not in the format of alias@domain and rather alias@subdoamin.domain
   if (!alias.split("@")[1].endsWith(validDestination.domain)) {
-    return next(
-      new CustomError("Alias from this Domain is not allowed", 400)
-    );
+    return next(new CustomError("Alias from this Domain is not allowed", 400));
   }
   const existingAlias = await Rule.findOne({ alias });
   if (existingAlias) {
@@ -46,8 +45,6 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
     );
   }
   try {
-
-
     // const response = await d1Query("INSERT INTO rules (alias, destination, username, domain) VALUES (?, ?, ?, ?)", [alias, destination, username, domain]);
     const response = await createRuleRequest(
       "POST",
@@ -71,36 +68,15 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
       enabled: true,
     });
 
-    await User.findByIdAndUpdate(
-      req.user.id,
-      [
-        {
-          $addFields: {
-            alias: {
-              $cond: {
-                if: { $in: [alias, "$alias"] },
-                then: "$alias",
-                else: { $concatArrays: ["$alias", [alias]] },
-              },
-            },
-            destination: {
-              $cond: {
-                if: { $in: [destination, "$destination"] },
-                then: "$destination",
-                else: { $concatArrays: ["$destination", [destination]] },
-              },
-            },
-          },
-        },
-        {
-          $set: {
-            aliasCount: { $size: "$alias" },
-            destinationCount: { $size: "$destination" },
-          },
-        },
-      ],
-      { new: true, validateBeforeSave: false }
-    );
+    const updatedUserQuery = await addAlias(req.user.id, {
+      id: newRule._id,
+      aliasEmail: alias,
+      destinationEmail: destination,
+      active: true,
+    });
+    if (!updatedUserQuery[0]) {
+      return next(new CustomError("User not found or update failed", 404));
+    }
     const safeRule = sendRule(newRule);
     const id = req.user.id || req.user._id;
     createSendResponse(safeRule, 201, res, "rule", id);
@@ -148,9 +124,7 @@ export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
   }
   // update this and check domain from hidden function named selectDomain as this will fail if alias is not in the format of alias@domain and rather
   if (!alias.split("@")[1].endsWith(validDestination.domain)) {
-    return next(
-      new CustomError("Alias from this Domain is not allowed", 400)
-    );
+    return next(new CustomError("Alias from this Domain is not allowed", 400));
   }
   try {
     // First API call to update the existing rule to inactive
@@ -186,46 +160,14 @@ export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
     rule.enabled = true;
     rule.ruleId = alias;
     await rule.save({ validateBeforeSave: false });
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.id,
-      [
-        {
-          $set: {
-            alias: {
-              $map: {
-                input: "$alias",
-                as: "item",
-                in: {
-                  $cond: [{ $eq: ["$$item", oldAlias] }, alias, "$$item"],
-                },
-              },
-            },
-            destination: {
-              $map: {
-                input: "$destination",
-                as: "item",
-                in: {
-                  $cond: [
-                    { $eq: ["$$item", oldDestination] },
-                    destination,
-                    "$$item",
-                  ],
-                },
-              },
-            },
-          },
-        },
-        {
-          $set: {
-            aliasCount: { $size: "$alias" },
-            destinationCount: { $size: "$destination" },
-          },
-        },
-      ],
-      { new: true, validateBeforeSave: false }
-    );
 
-    if (!updatedUser) {
+    const updatedUserQuery = await updateAlias(req.user.id, oldAlias, {
+      aliasEmail: alias,
+      destinationEmail: destination,
+      active: true,
+    });
+
+    if (!updatedUserQuery[0]) {
       throw new CustomError("User not found or update failed", 404);
     }
     const safeRule = sendRule(rule);
@@ -265,17 +207,8 @@ export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
     await Rule.findByIdAndDelete(id);
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.id,
-      {
-        $pull: {
-          alias: alias,
-        },
-      },
-      { new: true, validateBeforeSave: false }
-    );
-
-    if (!updatedUser) {
+    const updatedUserQuery = await removeAlias(req.user.id, alias);
+    if (!updatedUserQuery[0]) {
       throw new CustomError("User not found or Deletion failed", 404);
     }
     if (updatedUser) {

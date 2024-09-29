@@ -21,21 +21,13 @@ const destSchema = new mongoose.Schema({
     required: [true, "Domain Field is Required"],
     lowercase: true,
   },
-  created: {
-    type: Date,
-    select: false,
-    default: Date.now(),
-  },
-  modefied: {
-    type: Date,
-    select: false,
-    default: Date.now(),
-  },
+  
   verified: {
     type: Date,
     default: null,
   },
-});
-
+},{ timestamps: true });
+destSchema.index({ username: 1, domain: 1 });
+destSchema.index({ username: 1, destination: 1 }, { unique: true });
 const Destination = mongoose.model("Destination", destSchema);
 export default Destination;

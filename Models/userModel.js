@@ -27,16 +27,50 @@ const userSchema = new mongoose.Schema({
     validate: [validator.isEmail, "Not a valid email"],
   },
   alias: {
-    type: [String],
-    default: [],
+    type: [
+      {
+        aliasEmail: {
+          type: String,
+          lowercase: true,
+          required: true
+        },
+        destinationEmail: {
+          type: String,
+          lowercase: true,
+          required: true
+        },
+        active: {
+          type: Boolean,
+          default: true
+        }
+      }
+    ],
+    default: []
   },
   aliasCount: {
     type: Number,
     default: 0,
   },
   destination: {
-    type: [String],
-    default: [],
+    type: [
+      {
+        destinationEmail: {
+          type: String,
+          lowercase: true,
+          required: true
+        },
+        domain: {
+          type: String,
+          lowercase: true,
+          required: true
+        },
+        verified: {
+          type: Boolean,
+          default: false
+        }
+      }
+    ],
+    default: []
   },
   destinationCount: {
     type: Number,

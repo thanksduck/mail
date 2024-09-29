@@ -5,12 +5,16 @@ import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
 import { destinationRequest } from "../utils/prepareRequest.js";
 import { sendDestination } from "../utils/safeResponseObject.js";
+import {
+  addDestination,
+  removeDestination,
+  updateDestination,
+} from "./userDestination.js";
 
 async function isAllowed(id) {
   const user = await User.findById(id).select("+isPremium");
   return user.isPremium || user.destinationCount < 1;
 }
-
 
 export const listDestination = asyncErrorHandler(async (req, res, next) => {
   const username = req.user.username;
@@ -27,15 +31,17 @@ export const listDestination = asyncErrorHandler(async (req, res, next) => {
     });
   });
   const id = req.user.id || req.user._id;
-  createSendResponse(responseArray, 200, res, "destinations",id);
+  createSendResponse(responseArray, 200, res, "destinations", id);
 });
 
 export const createDestination = asyncErrorHandler(async (req, res, next) => {
-  const { destination, username ,domain} = req.body;
+  const { destination, username, domain } = req.body;
   if (!destination || !username || !domain) {
-    return next(new CustomError("Destination, username and domain are required", 400));
+    return next(
+      new CustomError("Destination, username and domain are required", 400)
+    );
   }
-  console.log("createDestination was called",destination,username,domain);
+  console.log("createDestination was called", destination, username, domain);
   if (username !== req.user.username) {
     return next(new CustomError("Not allowed", 401));
   }
@@ -76,33 +82,19 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
       verified,
     });
 
-    await User.findByIdAndUpdate(
-      req.user.id,
-      [
-        {
-          $addFields: {
-            destination: {
-              $cond: {
-                if: { $isArray: "$destination" },
-                then: { $setUnion: ["$destination", [destination]] },
-                else: [destination],
-              },
-            },
-          },
-        },
-        {
-          $set: {
-            destinationCount: { $size: { $ifNull: ["$destination", []] } },
-          },
-        },
-      ],
-      {
-        new: true,
-      }
-    );
+    const updatedUserQuery = await addDestination(req.user.id, {
+      destinationEmail: destination,
+      domain,
+      verified: false,
+      _id: newDestination._id,
+    });
+    if (!updatedUserQuery[0]) {
+      return next(new CustomError(`Some Error From Our side`, 500));
+    }
     newDestination.destinationId = newDestination._id;
     const id = req.user.id || req.user._id;
-    createSendResponse(newDestination, 201, res, "destination", id);
+    const safeDestination = sendDestination(newDestination);
+    createSendResponse(safeDestination, 201, res, "destination", id);
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)
@@ -134,32 +126,25 @@ export const deleteDestination = asyncErrorHandler(async (req, res, next) => {
   const { destination } = localDestination;
 
   try {
-    
-    const response = await destinationRequest("DELETE", localDestination.domain, localDestination.destination,cfId);
+    const response = await destinationRequest(
+      "DELETE",
+      localDestination.domain,
+      localDestination.destination,
+      cfId
+    );
     if (!response.data.success) {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
 
     await localDestination.deleteOne();
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.id,
-      {
-        $pull: { destination: destination }
-      },
-      { new: true, validateBeforeSave: false }
-    );
-    
-    await User.findByIdAndUpdate(
-      req.user.id,
-      {
-        $set: { destinationCount: updatedUser.destination.length }
-      },
-      { new: true, validateBeforeSave: false }
-    );
+    const updatedUserQuery = await removeDestination(req.user.id, destination);
+    if (!updatedUserQuery[0]) {
+      return next(new CustomError(`Some Error From Our side`, 500));
+    }
     const lid = req.user.id || req.user._id;
 
-    createSendResponse(null, 204, res ,"",lid);
+    createSendResponse(null, 204, res, "", lid);
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)
@@ -178,24 +163,46 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
     return next(new CustomError("Not allowed", 401));
   }
   if (localDestination.verified) {
-    return next(new CustomError("Destination already verified", 400));
+    createSendResponse(
+      sendDestination.localDestination,
+      200,
+      res,
+      "destination",
+      req.user.id
+    );
   }
   const cfId = localDestination.destinationId;
 
   try {
-    const response = await destinationRequest("GET", localDestination.domain, localDestination.destination,cfId);
-    // const response = await axios(options);
+    const response = await destinationRequest(
+      "GET",
+      localDestination.domain,
+      localDestination.destination,
+      cfId
+    );
     if (response.data.success === false) {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
     localDestination.verified = response.data.result.verified;
+    // localDestination.verified = new Date(); // test
     await localDestination.save({ validateBeforeSave: false });
 
-    localDestination.destinationId = localDestination._id;
+    const updatedUserQuery = await updateDestination(
+      req.user.id,
+      localDestination.destination,
+      {
+        destinationEmail: localDestination.destination,
+        domain: localDestination.domain,
+        verified: localDestination.verified,
+        _id: localDestination._id,
+      }
+    );
+    if (!updatedUserQuery[0]) {
+      return next(new CustomError(`Some Error From Our side`, 500));
+    }
     const id = req.user.id || req.user._id;
-    localDestination.verified = response.data.result.verified;
     const safeDestination = sendDestination(localDestination);
-    createSendResponse(safeDestination, 200, res, "destination" ,id);
+    createSendResponse(safeDestination, 200, res, "destination", id);
   } catch (error) {
     return next(
       new CustomError(`Failed to contact Cloudflare: ${error.message}`, 500)

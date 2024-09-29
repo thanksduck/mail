@@ -28,7 +28,7 @@ lerna-debug.log*
 *.sw?
 
 # Secret Functions
-Premium
+Premium/selectZone.js
 
 # bun package manager for the project
 bun.lockb
