@@ -1,15 +1,15 @@
-import Destination from "../Models/dstModel.js";
-import User from "../Models/userModel.js";
-import asyncErrorHandler from "../utils/asyncErrorHandler.js";
-import CustomError from "../utils/CustomError.js";
-import createSendResponse from "../utils/createSendResponse.js";
-import { destinationRequest } from "../utils/prepareRequest.js";
-import { sendDestination } from "../utils/safeResponseObject.js";
+import Destination from "../../Models/dstModel.js";
+import User from "../../Models/userModel.js";
+import asyncErrorHandler from "../../utils/asyncErrorHandler.js";
+import CustomError from "../../utils/CustomError.js";
+import createSendResponse from "../../utils/createSendResponse.js";
+import { destinationRequest } from "../../utils/prepareRequest.js";
+import { sendDestination } from "../../utils/safeResponseObject.js";
 import {
   addDestination,
   removeDestination,
   updateDestination,
-} from "./userDestination.js";
+} from "../User/userDestination.js";
 
 async function isAllowed(id) {
   const user = await User.findById(id).select("+isPremium");

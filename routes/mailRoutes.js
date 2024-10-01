@@ -5,20 +5,20 @@ import {
   createDestination,
   deleteDestination,
   isVerified,
-} from "../Controller/dstController.js";
+} from "../Controller/Mail/dstController.js";
 import {
   createRule,
   readRule,
   updateRule,
   deleteRule,
   listRules,
-} from "../Controller/mailController.js";
+} from "../Controller/Mail/mailController.js";
 
 import {
   createRuleV2,
   deleteRuleV2,
   updateRuleV2,
-} from "../Controller/mailControllerV2.js";
+} from "../Controller/Mail/mailControllerV2.js";
 
 
 const router = express.Router();

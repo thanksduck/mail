@@ -1,8 +1,8 @@
-import User from "../Models/userModel.js";
-import asyncErrorHandler from "../utils/asyncErrorHandler.js";
-import CustomError from "../utils/CustomError.js";
-import createSendResponse from "../utils/createSendResponse.js";
-import { sendUser } from "../utils/safeResponseObject.js";
+import User from "../../Models/userModel.js";
+import asyncErrorHandler from "../../utils/asyncErrorHandler.js";
+import CustomError from "../../utils/CustomError.js";
+import createSendResponse from "../../utils/createSendResponse.js";
+import { sendUser } from "../../utils/safeResponseObject.js";
 
 export const getUser = asyncErrorHandler(async (req, res, next) => {
   const { id } = req.user;

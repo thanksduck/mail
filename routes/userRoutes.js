@@ -4,9 +4,9 @@ import {
   updatePassword,
   deleteMe,
   updateMe,
-} from "../Controller/userController.js";
-import { listDestination } from "../Controller/dstController.js";
-import { listRules } from "../Controller/mailController.js";
+} from "../Controller/User/userController.js";
+import { listDestination } from "../Controller/Mail/dstController.js";
+import { listRules } from "../Controller/Mail/mailController.js";
 import { protect } from "../Controller/authController.js";
 const router = express.Router();
 

@@ -1,4 +1,4 @@
-import User from "../Models/userModel.js";
+import User from "../../Models/userModel.js";
 
 const addAlias = async (userId, newAlias) => {
     try {

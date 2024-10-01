@@ -1,13 +1,14 @@
-import Rule from "../Models/ruleModel.js";
-import Destination from "../Models/dstModel.js";
-import asyncErrorHandler from "../utils/asyncErrorHandler.js";
-import CustomError from "../utils/CustomError.js";
-import createSendResponse from "../utils/createSendResponse.js";
+import Rule from "../../Models/ruleModel.js";
+import Destination from "../../Models/dstModel.js";
+import asyncErrorHandler from "../../utils/asyncErrorHandler.js";
+import CustomError from "../../utils/CustomError.js";
+import createSendResponse from "../../utils/createSendResponse.js";
 
-import { createRuleRequest, d1Query } from "../utils/prepareRequest.js";
-import { sendRule } from "../utils/safeResponseObject.js";
+import { createRuleRequest, d1Query } from "../../utils/prepareRequest.js";
+import { createRule, removeRule } from "../../utils/rulesRequest.js";
+import { sendRule } from "../../utils/safeResponseObject.js";
 
-import { addAlias, updateAlias, removeAlias } from "./userAlias.js";
+import { addAlias, updateAlias, removeAlias } from "../User/userAlias.js";
 
 export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
   let { alias, destination } = req.body;
@@ -216,8 +217,8 @@ export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
       await updatedUser.save({ new: true, validateBeforeSave: false });
     }
 
-    const id = req.user.id || req.user._id;
-    createSendResponse(null, 204, res, "rule", id);
+    const lid = req.user.id || req.user._id;
+    createSendResponse(null, 204, res, "rule", lid);
   } catch (error) {
     return next(new CustomError(`Operation failed: ${error.message}`, 500));
   }

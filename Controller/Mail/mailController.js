@@ -1,15 +1,15 @@
-import Rule from "../Models/ruleModel.js";
-import User from "../Models/userModel.js";
-import Destination from "../Models/dstModel.js";
-import asyncErrorHandler from "../utils/asyncErrorHandler.js";
-import CustomError from "../utils/CustomError.js";
-import createSendResponse from "../utils/createSendResponse.js";
+import Rule from "../../Models/ruleModel.js";
+import User from "../../Models/userModel.js";
+import Destination from "../../Models/dstModel.js";
+import asyncErrorHandler from "../../utils/asyncErrorHandler.js";
+import CustomError from "../../utils/CustomError.js";
+import createSendResponse from "../../utils/createSendResponse.js";
 import axios from "axios";
-import { sendRule } from "../utils/safeResponseObject.js";
+import { sendRule } from "../../utils/safeResponseObject.js";
 
 let selectZone;
 try {
-  selectZone = (await import("../Premium/selectZone.js")).default;
+  selectZone = (await import("../../Premium/selectZone.js")).default;
 } catch (error) {
   console.error("Failed to load premium selectZone function:", error);
   selectZone = (alias) => {
