@@ -16,6 +16,16 @@ function selectDomain(alias) {
   );
 }
 
+/**
+ * Creates a rule request to be sent to the server.
+ *
+ * @param {string} method - The HTTP method to use for the request (e.g., "POST", "PATCH").
+ * @param {string} alias - The alias for the rule.
+ * @param {string} destination - The destination for the rule.
+ * @param {string} username - The username of the person creating the rule.
+ * @returns {Promise} - A promise that resolves to the server response.
+ * @throws {Error} - Throws an error if the domain is invalid.
+ */
 export const createRuleRequest = (method, alias, destination, username) => {
   const domain = selectDomain(alias);
   if (!domain) {
@@ -33,7 +43,9 @@ export const createRuleRequest = (method, alias, destination, username) => {
   const url =
     method === "POST"
       ? ruleUrl
-      : `${ruleUrl}/${domain}/${alias}`;
+      : method === "PATCH"
+        ? `${ruleUrl}/${domain}/${alias}/flip`
+        : `${ruleUrl}/${domain}/${alias}`;
 
   return axios({
     method,
@@ -46,6 +58,13 @@ export const createRuleRequest = (method, alias, destination, username) => {
   });
 };
 
+/**
+ * Executes a SQL query on cloudflare D1-database using Axios with the provided SQL statement and parameters.
+ *
+ * @param {string} sql - The SQL query to be executed.
+ * @param {Object} params - The parameters to be used in the SQL query.
+ * @returns {Promise} - A promise that resolves to the response of the Axios request.
+ */
 export const d1Query = (sql, params) => {
   return axios({
     method: "POST",
@@ -84,6 +103,15 @@ export const routingRulesRequest = (method, alias, destination) => {
   });
 };
 
+/**
+ * Sends a request to the specified destination using the provided method and domain.
+ *
+ * @param {string} method - The HTTP method to use for the request (e.g., 'GET', 'POST').
+ * @param {string} domain - The domain to select the destination from.
+ * @param {string} destination - The email address to be used as the destination.
+ * @param {string} [cfId] - Optional Cloudflare ID for the specific address.
+ * @returns {Promise|null} - Returns a promise that resolves to the response of the axios request, or null if email, account, or key is not found.
+ */
 export const destinationRequest = (method, domain, destination, cfId) => {
   const [email, account, key] = selectDestination(domain);
   const url = !cfId

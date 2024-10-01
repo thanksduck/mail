@@ -1,6 +1,15 @@
 import { createTransport } from "nodemailer";
 const supportEmail = process.env.SUPPORT_EMAIL;
 const companyName = process.env.COMPANY_NAME;
+/**
+ * Sends an email using the provided options.
+ *
+ * @param {Object} option - The email options.
+ * @param {string} option.email - The recipient's email address.
+ * @param {string} option.subject - The subject of the email.
+ * @param {string} option.message - The message content of the email.
+ * @returns {Promise<void>} A promise that resolves when the email is sent.
+ */
 const sendEmail = async function (option) {
   // create a transporter
   const transporter = createTransport({

@@ -17,6 +17,7 @@ import {
 import {
   createRuleV2,
   deleteRuleV2,
+  toggleRuleV2,
   updateRuleV2,
 } from "../Controller/Mail/mailControllerV2.js";
 
@@ -51,6 +52,13 @@ router
   .get(protect, readRule)
   .patch(protect, updateRuleV2)
   .delete(protect, deleteRuleV2);
+
+router
+  .route("/rule/:id/toggle")
+  .patch(protect, toggleRuleV2);
+router
+  .route("/rules/:id/toggle")
+  .patch(protect, toggleRuleV2);
 
 
 export default router;

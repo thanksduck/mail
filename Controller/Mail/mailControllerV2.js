@@ -5,12 +5,12 @@ import CustomError from "../../utils/CustomError.js";
 import createSendResponse from "../../utils/createSendResponse.js";
 
 import { createRuleRequest, d1Query } from "../../utils/prepareRequest.js";
-import { createRule, removeRule } from "../../utils/rulesRequest.js";
+// import { createRule, removeRule } from "../../utils/rulesRequest.js";
 import { sendRule } from "../../utils/safeResponseObject.js";
 
 import { addAlias, updateAlias, removeAlias } from "../User/userAlias.js";
 
-export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
+const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
   let { alias, destination } = req.body;
   if (!alias || !destination) {
     return next(
@@ -86,7 +86,7 @@ export const createRuleV2 = asyncErrorHandler(async (req, res, next) => {
   }
 });
 
-export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
+const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
   const id = req.params.id;
   let rule;
   try {
@@ -179,7 +179,49 @@ export const updateRuleV2 = asyncErrorHandler(async (req, res, next) => {
   }
 });
 
-export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
+const toggleRuleV2 = asyncErrorHandler(async (req, res, next) => {
+  const id = req.params.id;
+  const rule = await Rule.findById(id);
+  if (!rule) {
+    return next(new CustomError("Rule not found", 404));
+  }
+  if (rule.username !== req.user.username) {
+    return next(
+      new CustomError("You are not authorized to access this rule", 401)
+    );
+  }
+
+  try {
+    const response = await createRuleRequest(
+      "PATCH",
+      rule.alias,
+      rule.destination,
+      rule.username
+    );
+    if (response.success === false) {
+      return next(
+        new CustomError(`${response.errors[0]} and ${response.message}`, 400)
+      );
+    }
+    rule.enabled = !rule.enabled;
+    await rule.save({ validateBeforeSave: false });
+    const updatedUserQuery = await updateAlias(req.user.id, rule.alias, {
+      aliasEmail: rule.alias,
+      destinationEmail: rule.destination,
+      active: rule.enabled,
+    });
+    if (!updatedUserQuery[0]) {
+      throw new CustomError("User not found or update failed", 404);
+    }
+    const safeRule = sendRule(rule);
+    const lid = req.user.id || req.user._id;
+    createSendResponse(safeRule, 200, res, "rule", lid);
+  } catch (error) {
+    return next(new CustomError(`Operation failed: ${error.message}`, 500));
+  }
+});
+
+const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
   const id = req.params.id;
   const rule = await Rule.findById(id);
   if (!rule) {
@@ -212,10 +254,6 @@ export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
     if (!updatedUserQuery[0]) {
       throw new CustomError("User not found or Deletion failed", 404);
     }
-    if (updatedUser) {
-      updatedUser.aliasCount = updatedUser.alias.length;
-      await updatedUser.save({ new: true, validateBeforeSave: false });
-    }
 
     const lid = req.user.id || req.user._id;
     createSendResponse(null, 204, res, "rule", lid);
@@ -223,3 +261,5 @@ export const deleteRuleV2 = asyncErrorHandler(async (req, res, next) => {
     return next(new CustomError(`Operation failed: ${error.message}`, 500));
   }
 });
+
+export { createRuleV2, updateRuleV2, toggleRuleV2, deleteRuleV2 };
