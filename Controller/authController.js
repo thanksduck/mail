@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import createSendResponse from "../utils/createSendResponse.js";
 import sendEmail from "../utils/sendEmail.js";
+import { sendUser } from "../utils/safeResponseObject.js";
 
 export const signup = asyncErrorHandler(async (req, res, next) => {
   const { username, name, email, password, passwordConfirm } = req.body;
@@ -15,28 +16,8 @@ export const signup = asyncErrorHandler(async (req, res, next) => {
 
   const userBody = { username, name, email, password, passwordConfirm };
   const newUser = await User.create(userBody);
-
   const id = newUser.id || newUser._id;
-  const {
-    username: safeUsername,
-    name: safeName,
-    email: safeEmail,
-    alias,
-    aliasCount,
-    destination,
-    destinationCount,
-  } = newUser;
-
-  const safeUser = {
-    username: safeUsername,
-    name: safeName,
-    email: safeEmail,
-    alias,
-    aliasCount,
-    destination,
-    destinationCount,
-  };
-
+  const safeUser = sendUser(newUser);
   createSendResponse(safeUser, 201, res, "user", id);
 });
 
@@ -58,24 +39,7 @@ export const login = asyncErrorHandler(async (req, res, next) => {
     return next(new CustomError("Incorrect email or password", 401));
   }
   const id = user.id || user._id;
-  const {
-    username: safeUsername,
-    name: safeName,
-    email: safeEmail,
-    alias,
-    aliasCount,
-    destination,
-    destinationCount,
-  } = user;
-  const safeUser = {
-    username: safeUsername,
-    name: safeName,
-    email: safeEmail,
-    alias,
-    aliasCount,
-    destination,
-    destinationCount,
-  };
+  const safeUser = sendUser(user);
   createSendResponse(safeUser, 200, res, "user", id);
 });
 
@@ -188,17 +152,7 @@ export const resetPassword = asyncErrorHandler(async (req, res, next) => {
   user.passwordResetExpires = undefined;
   await user.save({ validateBeforeSave: true });
   const id = newUser.id || newUser._id;
-  
-
-  const safeUser = {
-    username,
-    name,
-    email,
-    alias,
-    aliasCount,
-    destination,
-    destinationCount,
-  } = user;
+  const safeUser = sendUser(newUser);
   createSendResponse(safeUser, 200, res, "user", id);
 });
 
