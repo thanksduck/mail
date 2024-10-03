@@ -28,13 +28,7 @@ export default function createSendResponse(
   const token = signToken(id);
   const options = {
     maxAge: process.env.COOCKIE_EXPIRES,
-    httpOnly: true,
   };
-
-  if (process.env.NODE_ENV === "production") {
-    options.secure = true;
-    options.sameSite = "strict";
-  }
 
   res.cookie("jwt", token, options);
 
