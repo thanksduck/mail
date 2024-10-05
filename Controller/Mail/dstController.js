@@ -19,18 +19,20 @@ async function isAllowed(id) {
 export const listDestination = asyncErrorHandler(async (req, res, next) => {
   const username = req.user.username;
   const destinations = await Destination.find({ username });
-  if (!destinations) {
+
+  if (!destinations || destinations.length === 0) {
     return next(new CustomError("No Destination Found", 404));
   }
-  const responseArray = [];
-  destinations.forEach((destination) => {
-    responseArray.push({
-      destinationId: destination._id,
-      destination: destination.destination,
-      verified: destination.verified,
-    });
-  });
+
+  const responseArray = destinations.map((destination) => ({
+    destinationId: destination._id,
+    destinationEmail: destination.destination,
+    domain: destination.domain,
+    verified: destination.verified,
+  }));
+
   const id = req.user.id || req.user._id;
+
   createSendResponse(responseArray, 200, res, "destinations", id);
 });
 

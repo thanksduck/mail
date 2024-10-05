@@ -32,7 +32,7 @@ const ruleSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 ruleSchema.index({ username: 1 });
-
+ruleSchema.index({ alias: 1 });
 const Rule = mongoose.model("Rule", ruleSchema); 
 
 export default Rule;

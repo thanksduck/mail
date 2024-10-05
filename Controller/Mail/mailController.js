@@ -24,26 +24,21 @@ const rulesPath = "email/routing/rules";
 export const listRules = asyncErrorHandler(async (req, res, next) => {
   const { username } = req.user;
   const rules = await Rule.find({ username });
-  if (!rules) {
+
+  if (!rules || rules.length === 0) {
     return next(new CustomError(`${username} has no Routing Rules`, 404));
   }
-  const alias = [];
-  const destination = [];
-  const rulesArray = [];
 
-  rules.forEach((rule) => {
-    if (rule.enabled) {
-      if (!alias.includes(rule.alias)) {
-        alias.push(rule.alias);
-      }
-      if (!destination.includes(rule.destination)) {
-        destination.push(rule.destination);
-      }
-      rulesArray.push({ alias: rule.alias, destination: rule.destination, ruleId: rule._id });
-    }
-  });
+  // Map the MongoDB rule data to the required frontend Rule[] format
+  const rulesArray = rules.map((rule) => ({
+    aliasEmail: rule.alias,                    // alias -> aliasEmail
+    destinationEmail: rule.destination,        // destination -> destinationEmail
+    ruleId: rule._id.toString(),               // _id -> ruleId
+    active: rule.enabled,                      // enabled -> active
+  }));
 
-  createSendResponse(rulesArray, 200, res,"rules",req.user.id);
+  // Send the response
+  createSendResponse(rulesArray, 200, res, "rules", req.user.id);
 });
 
 export const createRule = asyncErrorHandler(async (req, res, next) => {
