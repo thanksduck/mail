@@ -12,9 +12,9 @@
  * @returns {Object} The transformed rule object with the properties alias, destination, username, ruleId, name, and active.
  */
 export const sendRule = (rule) => {
-  const { alias, destination, username, name, id, _id, active } = rule;
+  const { alias, destination, username, name, id, _id, enabled } = rule;
   const ruleId = id || _id;
-  return { alias, destination, username, ruleId, name, active };
+  return { aliasEmail: alias, destinationEmail: destination, username, ruleId, name, active:enabled };
 };
 
 /**

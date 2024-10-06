@@ -15,16 +15,16 @@ export const getUser = asyncErrorHandler(async (req, res, next) => {
 });
 
 export const updatePassword = asyncErrorHandler(async (req, res, next) => {
-  const { currentPassword, newPassword, newPasswordConfirm } = req.body;
-  if (!currentPassword || !newPassword || !newPasswordConfirm) {
+  const { currentPassword, password, passwordConfirm } = req.body;
+  if (!currentPassword || !password || !passwordConfirm) {
     return next(new CustomError("Please provide all the required fields", 400));
   }
   const user = await User.findById(req.user.id).select("+password");
   if (!(await user.correctPassword(currentPassword, user.password))) {
     return next(new CustomError("Your current password is wrong", 401));
   }
-  user.password = newPassword;
-  user.passwordConfirm = newPasswordConfirm;
+  user.password = password;
+  user.passwordConfirm = passwordConfirm;
   const updatedUser = await user.save({ validateBeforeSave: true });
   const id = req.user.id || req.user._id || updatedUser.id || updatedUser._id;
   const safeUser = {
