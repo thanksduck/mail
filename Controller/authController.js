@@ -144,27 +144,32 @@ export const forgetPassword = asyncErrorHandler(async (req, res, next) => {
 export const resetPassword = asyncErrorHandler(async (req, res, next) => {
   const { token } = req.params;
   const { password, passwordConfirm } = req.body;
+
   if (!password || !passwordConfirm) {
     return next(
       new CustomError("Please provide password and passwordConfirm", 400)
     );
   }
+
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
   const user = await User.findOne({
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },
   });
+
   if (!user) {
     return next(new CustomError("Token is invalid or has expired", 400));
   }
+
   user.password = password;
   user.passwordConfirm = passwordConfirm;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
-  await user.save({ validateBeforeSave: true });
-  const id = newUser.id || newUser._id;
-  const safeUser = sendUser(newUser);
-  createSendResponse(safeUser, 200, res, "user", id);
+  await user.save();
+
+  const safeUser = sendUser(user);
+  createSendResponse(safeUser, 200, res, "user", user._id);
 });
 
 export const logout = asyncErrorHandler(async (req, res, next) => {
