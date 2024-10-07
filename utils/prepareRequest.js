@@ -3,17 +3,13 @@ import axios from "axios";
 const fullUrl = `${process.env.CF_URL_PREFIX}/accounts/${process.env.CF_ACCOUNT_ID}/d1/database/${process.env.CF_DB_ID}/query`;
 
 const allowedDomains = new Set(
-  process.env.ALLOWED_DOMAINS.split(",").map((domain) => domain.toLowerCase())
+  process.env.ALLOWED_DOMAINS.split(" ").map((domain) => domain.toLowerCase())
 );
 const ruleUrl = `${process.env.RULE_URL_PREFIX}/rules`;
 
 function selectDomain(alias) {
-  const lowercaseAlias = alias.toLowerCase();
-  return (
-    Array.from(allowedDomains).find((domain) =>
-      lowercaseAlias === domain || lowercaseAlias.endsWith(`.${domain}`)
-    ) || ""
-  );
+  const domain = alias.split("@")[1]?.toLowerCase();
+  return allowedDomains.has(domain) ? domain : "";
 }
 
 /**
@@ -44,8 +40,8 @@ export const createRuleRequest = (method, alias, destination, username) => {
     method === "POST"
       ? ruleUrl
       : method === "PATCH"
-        ? `${ruleUrl}/${domain}/${alias}/flip`
-        : `${ruleUrl}/${domain}/${alias}`;
+      ? `${ruleUrl}/${domain}/${alias}/flip`
+      : `${ruleUrl}/${domain}/${alias}`;
 
   return axios({
     method,
