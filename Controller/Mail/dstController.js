@@ -37,7 +37,8 @@ export const listDestination = asyncErrorHandler(async (req, res, next) => {
 });
 
 export const createDestination = asyncErrorHandler(async (req, res, next) => {
-  const { destination, username, domain } = req.body;
+  const { destination, domain } = req.body;
+  const username = req.user.username;
   if (!destination || !username || !domain) {
     return next(
       new CustomError("Destination, username and domain are required", 400)
@@ -185,7 +186,10 @@ export const isVerified = asyncErrorHandler(async (req, res, next) => {
     if (response.data.success === false) {
       return next(new CustomError(response.data.errors[0].message, 400));
     }
-    localDestination.verified = response.data.result.verified;
+    if (!response.data.result.verified) {
+      return next(new CustomError("Not Verified", 400));
+    }
+    localDestination.verified = true;
     // localDestination.verified = new Date(); // test
     await localDestination.save({ validateBeforeSave: false });
 

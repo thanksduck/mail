@@ -21,20 +21,13 @@ export const sendRule = (rule) => {
  * Extracts and returns a safe response object from the given destination object.
  *
  * @param {Object} destination - The destination object.
- * @param {string} destination.domain - The domain of the destination.
- * @param {string} destination.username - The username associated with the destination.
- * @param {Date} destination.created - The creation date of the destination.
- * @param {Date} destination.modified - The last modified date of the destination.
- * @param {boolean} destination.verified - The verification status of the destination.
- * @param {string} [destination._id] - The internal ID of the destination.
- * @param {string} [destination.id] - The external ID of the destination.
  * @returns {Object} The safe response object containing the destinationId, domain, username, created, modified, and verified properties.
  */
 export const sendDestination = (destination) => {
-  const { domain, username, created, modified, verified, _id, id } =
+  const {  domain, username, created, modified, verified, _id, id } =
     destination;
   const destinationId = id || _id;
-  return { destinationId, domain, username, created, modified, verified };
+  return { destinationEmail:destination.destination, destinationId, domain, username, created, modified, verified };
 };
 
 /**

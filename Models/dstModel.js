@@ -23,8 +23,8 @@ const destSchema = new mongoose.Schema({
   },
   
   verified: {
-    type: Date,
-    default: null,
+    type: Boolean,
+    default: false,
   },
 },{ timestamps: true });
 destSchema.index({ username: 1, domain: 1 });

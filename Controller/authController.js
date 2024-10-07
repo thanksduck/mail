@@ -106,9 +106,9 @@ export const forgetPassword = asyncErrorHandler(async (req, res, next) => {
   const resetToken = await user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
-  const resetURL = `${req.protocol}://${req.get(
-    "host"
-  )}/auth/reset-password/${resetToken}`;
+  const resetURL = `${req.get(
+    "referrer"
+  )}auth/reset-password/${resetToken}`;
 
   const message = `Forgot your password?
     Click on the given link to reset your password: ${resetURL}.
