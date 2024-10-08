@@ -100,6 +100,9 @@ const userSchema = new mongoose.Schema({
       message: "Passwords are not the same",
     },
   },
+  povidor: {
+    type: String,
+  },
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,

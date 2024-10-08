@@ -32,7 +32,7 @@ export const login = asyncErrorHandler(async (req, res, next) => {
   const user = await User.findOne({ $or: [{ username }, { email }] }).select(
     "+password +active"
   );
-  if (!user || !user.active) {
+  if (!user || !user.active || user.provider) {
     return next(new CustomError("Incorrect username or password", 401));
   }
   if (!(await user.correctPassword(password, user.password))) {

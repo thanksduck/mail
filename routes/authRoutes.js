@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { signup, login , forgetPassword, resetPassword, protect, logout } from "../Controller/authController.js";
+import { facebookCallback, googleCallback, googleLogin } from "../Controller/auth2.js";
 const router = Router();
 
 router
@@ -20,4 +21,14 @@ router
 router
     .route('/logout')
     .post(protect, logout);
+
+router
+    .route("/google")
+    .get(googleLogin);
+router
+    .route("/google/callback")
+    .get(googleCallback);
+router
+    .route("/facebook/callback")
+    .get(facebookCallback);
 export default router;
