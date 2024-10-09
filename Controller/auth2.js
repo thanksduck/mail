@@ -79,6 +79,11 @@ export const googleCallback = asyncErrorHandler(async (req, res, next) => {
     const token = signToken(id);
     const options = {
       maxAge: process.env.COOCKIE_EXPIRES,
+      sameSite: "none",
+      secure: true,
+      domain: process.env.FRONTEND,
+      partitioned: true,
+      httpOnly: true,
     };
     res.cookie("jwt", token, options);
 
