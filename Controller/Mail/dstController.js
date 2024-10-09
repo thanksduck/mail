@@ -75,6 +75,7 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
     }
 
     const { created, modified, verified } = response.data.result;
+    const isVerified = verified ? true : false;
     const newDestination = await Destination.create({
       destination,
       username,
@@ -82,7 +83,7 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
       destinationId: response.data.result.id,
       created,
       modified,
-      verified,
+      verified:isVerified,
     });
 
     const updatedUserQuery = await addDestination(req.user.id, {
