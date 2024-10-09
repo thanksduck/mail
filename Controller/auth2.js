@@ -30,15 +30,13 @@ passport.use(
       try {
         const { id, displayName, emails } = profile;
         const email = emails && emails[0]?.value;
-
-        // Check if user already exists in the database
+        
         let user = await User.findOne({ email });
-
         if (!user) {
           // Create a new user if not found
           user = new User({
-            username: displayName,
-            name: displayName,
+            username: email,
+            name: "Set Name",
             email,
             password: " ", // Set password as null since this is OAuth
             passwordConfirm: " ",
@@ -81,7 +79,6 @@ export const googleCallback = asyncErrorHandler(async (req, res, next) => {
       maxAge: process.env.COOCKIE_EXPIRES,
       sameSite: "none",
       secure: true,
-      domain: process.env.FRONTEND,
       partitioned: true,
       httpOnly: true,
     };
