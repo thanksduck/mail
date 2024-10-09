@@ -7,16 +7,7 @@ import CustomError from "../utils/CustomError.js";
 import createSendResponse from "../utils/createSendResponse.js";
 import { sendUser } from "../utils/safeResponseObject.js";
 
-import jwt from "jsonwebtoken";
 
-
-
-
-function signToken(id) {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
-  });
-}
 
 // Configure Google OAuth Strategy
 passport.use(
@@ -73,21 +64,9 @@ export const googleCallback = asyncErrorHandler(async (req, res, next) => {
     const id = user.id || user._id;
     const safeUser = sendUser(user);
 
-    // Generate JWT token
-    const token = signToken(id);
-    const options = {
-      maxAge: process.env.COOCKIE_EXPIRES,
-      sameSite: "none",
-      secure: true,
-      partitioned: true,
-      httpOnly: true,
-    };
-    res.cookie("jwt", token, options);
-
-    // Redirect to frontend with encrypted user data
-    res.redirect(
-      `${process.env.FRONTEND}/auth-success/google/?data=${encodeURIComponent(JSON.stringify(safeUser))}`
-    );
+    res.setHeader("Location", `${process.env.FRONTEND}/auth-success/google`);
+    
+    createSendResponse(safeUser, 302, res, "user", id);
   })(req, res, next);
 });
 
