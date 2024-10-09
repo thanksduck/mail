@@ -59,17 +59,18 @@ export const googleCallback = asyncErrorHandler(async (req, res, next) => {
     if (err || !user) {
       console.log(err);
       console.log(user);
-      return next(
-        new CustomError(
-          `Authentication Failed due to ${err.message} ${err}`,
-          401
-        )
-      );
+      if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        return res.status(401).json({ error: 'Authentication Failed' });
+      }
+      return res.redirect('/login?error=auth_failed');
     }
-
     const id = user.id || user._id;
     const safeUser = sendUser(user);
-    createSendResponse(safeUser, 200, res, "user", id);
+    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+      createSendResponse(safeUser, 200, res, "user", id);
+    } else {
+      res.redirect(`/auth-success?user=${encodeURIComponent(JSON.stringify(safeUser))}`);
+    }
   })(req, res, next);
 });
 
