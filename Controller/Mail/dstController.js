@@ -89,7 +89,7 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
     const updatedUserQuery = await addDestination(req.user.id, {
       destinationEmail: destination,
       domain,
-      verified: false,
+      verified: isVerified,
       _id: newDestination._id,
     });
     if (!updatedUserQuery[0]) {
