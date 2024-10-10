@@ -5,7 +5,7 @@ import { Strategy as GitHubStrategy } from "passport-github2";
 import User from "../Models/userModel.js";
 import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
-import createSendResponse from "../utils/createSendResponse.js";
+import createSendResponse, { signToken } from "../utils/createSendResponse.js";
 import { sendUser } from "../utils/safeResponseObject.js";
 
 
@@ -63,11 +63,11 @@ export const googleCallback = asyncErrorHandler(async (req, res, next) => {
       return res.redirect(`${process.env.FRONTEND}/login/failed`);
     }
     const id = user.id || user._id;
-    const safeUser = sendUser(user);
 
-    res.setHeader("Location", `${process.env.FRONTEND}/auth-success/google`);
+    // res.setHeader("Location", `${process.env.FRONTEND}/auth-success/google`);
+    res.setHeader("token", signToken(id));
+    res.redirect(`${process.env.FRONTEND}/auth-success/google`);
     
-    createSendResponse(safeUser, 302, res, "user", id);
   })(req, res, next);
 });
 
@@ -207,8 +207,8 @@ export const githubCallback = asyncErrorHandler(async (req, res, next) => {
       return res.redirect(`${process.env.FRONTEND}/login/failed`);
     }
     const id = user.id || user._id;
-    const safeUser = sendUser(user);
     res.setHeader("Location", `${process.env.FRONTEND}/auth-success/github`);
-    createSendResponse(safeUser, 302, res, "user", id);
+    res.setHeader("token", signToken(id));
+    res.redirect(`${process.env.FRONTEND}/auth-success/github`);
   })(req, res, next);
 });
