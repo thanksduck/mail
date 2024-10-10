@@ -152,13 +152,53 @@ async (accessToken, refreshToken, profile, done) => {
 ));
 
 // Initiate GitHub Login
+passport.use(
+  new GitHubStrategy(
+    {
+      clientID: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackURL: "/api/v1/auth/github/callback",
+      scope: ['user:email'] // Add this line to request email scope
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const { id, username, displayName, emails } = profile;
+        const email = emails && emails[0]?.value;
+        
+        if (!email) {
+          return done(new Error('No email found from GitHub'), null);
+        }
+
+        let user = await User.findOne({ email });
+        if (!user) {
+          // Create a new user if not found
+          user = new User({
+            username: username || email,
+            name: displayName || username || "Set Name",
+            email,
+            password: " ", // Set password as empty string since this is OAuth
+            passwordConfirm: " ",
+            active: true,
+            provider: "github",
+          });
+          await user.save({ validateBeforeSave: false });
+        }
+        done(null, user);
+      } catch (error) {
+        done(error, null);
+      }
+    }
+  )
+);
+
+// Initiate GitHub Login
 export const githubLogin = asyncErrorHandler(async (req, res, next) => {
   passport.authenticate("github", { scope: ["user:email"] })(req, res, next);
 });
 
 // Middleware to handle GitHub OAuth callback
 export const githubCallback = asyncErrorHandler(async (req, res, next) => {
-  passport.authenticate("github",{
+  passport.authenticate("github", {
     failureRedirect: `${process.env.FRONTEND}/login/failed`
   }, async (err, user, info) => {
     if (err || !user) {
@@ -168,9 +208,7 @@ export const githubCallback = asyncErrorHandler(async (req, res, next) => {
     }
     const id = user.id || user._id;
     const safeUser = sendUser(user);
-
-    res.setHeader("Location", `${process.env.FRONTEND}/auth-success/google`);
-    
+    res.setHeader("Location", `${process.env.FRONTEND}/auth-success/github`);
     createSendResponse(safeUser, 302, res, "user", id);
   })(req, res, next);
 });
