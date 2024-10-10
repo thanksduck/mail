@@ -7,7 +7,7 @@ import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
 import createSendResponse, { signToken } from "../utils/createSendResponse.js";
 import { sendUser } from "../utils/safeResponseObject.js";
-
+import bcrypt from "bcryptjs";
 
 
 // Configure Google OAuth Strategy
@@ -64,7 +64,7 @@ export const googleCallback = asyncErrorHandler(async (req, res, next) => {
     }
     const id = user.id || user._id;
 
-    // res.setHeader("Location", `${process.env.FRONTEND}/auth-success/google`);
+    const token = signToken(id);
     res.setHeader("token", signToken(id));
     res.redirect(`${process.env.FRONTEND}/auth-success/google?token=${encodeURIComponent(token)}`);
   })(req, res, next);
@@ -226,7 +226,7 @@ export const githubCallback = asyncErrorHandler(async (req, res, next) => {
       return res.redirect(`${process.env.FRONTEND}/login/failed`);
     }
     const id = user.id || user._id;
-    res.setHeader("token", signToken(id));
+    const token = signToken(id);
     res.redirect(`${process.env.FRONTEND}/auth-success/github?token=${encodeURIComponent(token)}`);
   })(req, res, next);
 });
