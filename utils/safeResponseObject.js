@@ -52,6 +52,7 @@ export const sendUser = (user) => {
     aliasCount,
     destination,
     destinationCount,
+    avatar,
   } = user;
 
   return {
@@ -62,5 +63,6 @@ export const sendUser = (user) => {
     aliasCount,
     destination,
     destinationCount,
+    avatar,
   };
 };

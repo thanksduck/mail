@@ -112,7 +112,6 @@ const userSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    select: false,
   },
   passwordChangedAt: Date,
   passwordResetToken: String,
