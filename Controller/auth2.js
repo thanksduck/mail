@@ -66,8 +66,7 @@ export const googleCallback = asyncErrorHandler(async (req, res, next) => {
 
     // res.setHeader("Location", `${process.env.FRONTEND}/auth-success/google`);
     res.setHeader("token", signToken(id));
-    res.redirect(`${process.env.FRONTEND}/auth-success/google`);
-    
+    res.redirect(`${process.env.FRONTEND}/auth-success/google?token=${encodeURIComponent(token)}`);
   })(req, res, next);
 });
 
@@ -207,8 +206,7 @@ export const githubCallback = asyncErrorHandler(async (req, res, next) => {
       return res.redirect(`${process.env.FRONTEND}/login/failed`);
     }
     const id = user.id || user._id;
-    res.setHeader("Location", `${process.env.FRONTEND}/auth-success/github`);
     res.setHeader("token", signToken(id));
-    res.redirect(`${process.env.FRONTEND}/auth-success/github`);
+    res.redirect(`${process.env.FRONTEND}/auth-success/github?token=${encodeURIComponent(token)}`);
   })(req, res, next);
 });
