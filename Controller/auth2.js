@@ -157,33 +157,53 @@ passport.use(
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
       callbackURL: "/api/v1/auth/github/callback",
-      scope: ['user:email'] // Add this line to request email scope
+      scope: ['user:email'] // Request email scope
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const { id, username, displayName, emails } = profile;
-        const email = emails && emails[0]?.value;
+        // Extract data from profile
+        const { id, username, displayName, emails, photos } = profile;
         
+        // Validate email
+        const email = emails && emails.find(e => e.primary)?.value || emails?.[0]?.value;
         if (!email) {
-          return done(new Error('No email found from GitHub'), null);
+          return done(new Error('No valid email found from GitHub'), null);
         }
 
-        let user = await User.findOne({ email });
-        if (!user) {
-          // Create a new user if not found
+        // Validate username
+        const githubUsername = username || email.split('@')[0];
+
+        // Find user by email or GitHub username
+        let user = await User.findOne({ 
+          $or: [{ email }, { 'socialProfiles.github': githubUsername }] 
+        });
+
+        if (user) {
+          // Update existing user information
+          user.name = user.name || displayName || githubUsername;
+          user.socialProfiles = user.socialProfiles || {};
+          user.socialProfiles.github = githubUsername;
+          user.avatar = user.avatar || photos?.[0]?.value;
+          await user.save({ validateBeforeSave: false });
+        } else {
+          // Create a new user
           user = new User({
-            username: username || email,
-            name: displayName || username || "Set Name",
+            username: githubUsername,
+            name: displayName || githubUsername,
             email,
-            password: " ", // Set password as empty string since this is OAuth
-            passwordConfirm: " ",
+            password: await bcrypt.hash(Math.random().toString(36), 10), // Generate a random hashed password
+            passwordConfirm: " ", // Not needed for OAuth
             active: true,
             provider: "github",
+            socialProfiles: { github: githubUsername },
+            avatar: photos?.[0]?.value
           });
           await user.save({ validateBeforeSave: false });
         }
+
         done(null, user);
       } catch (error) {
+        console.error('Error in GitHub authentication:', error);
         done(error, null);
       }
     }

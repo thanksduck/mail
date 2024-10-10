@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import validator from "validator";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { type } from "os";
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -102,6 +103,15 @@ const userSchema = new mongoose.Schema({
   },
   povidor: {
     type: String,
+  },
+  socialProfiles: {
+    type: {
+      github: String,
+    },
+  },
+  avatar: {
+    type: String,
+    select: false,
   },
   passwordChangedAt: Date,
   passwordResetToken: String,
