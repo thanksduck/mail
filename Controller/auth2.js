@@ -46,7 +46,7 @@ passport.use(
 
 // Middleware to handle Google login
 export const googleLogin = asyncErrorHandler(async (req, res, next) => {
-  passport.authenticate("google", { scope: ["profile", "email"] })(
+  passport.authenticate("google", { scope: [ "email"] })(
     req,
     res,
     next
@@ -59,7 +59,7 @@ export const googleCallback = asyncErrorHandler(async (req, res, next) => {
     if (err || !user) {
       console.log(err);
       console.log(user);
-      return res.redirect(`${process.env.FRONTEND}/login`);
+      return res.redirect(`${process.env.FRONTEND}/login/failed`);
     }
     const id = user.id || user._id;
     const safeUser = sendUser(user);
@@ -116,5 +116,60 @@ export const facebookCallback = asyncErrorHandler(async (req, res, next) => {
     const id = user.id || user._id;
     const safeUser = sendUser(user);
     createSendResponse(safeUser, 200, res, "user", id);
+  })(req, res, next);
+});
+
+
+passport.use(new GitHubStrategy({
+  clientID: process.env.GITHUB_CLIENT_ID,
+  clientSecret: process.env.GITHUB_CLIENT_SECRET,
+  callbackURL: "/api/v1/auth/github/callback"
+},
+async (accessToken, refreshToken, profile, done) => {
+  try {
+    const email = profile.emails && profile.emails[0]?.value;
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      // Create a new user if not found
+      user = new User({
+        username: profile.username,
+        name: profile.displayName || profile.username,
+        email,
+        password: " ", // Set password as null since this is OAuth
+        passwordConfirm: " ",
+        active: true,
+        provider: "github",
+      });
+      await user.save({ validateBeforeSave: false });
+    }
+    done(null, user);
+  } catch (error) {
+    done(error, null);
+  }
+}
+));
+
+// Initiate GitHub Login
+export const githubLogin = asyncErrorHandler(async (req, res, next) => {
+  passport.authenticate("github", { scope: ["user:email"] })(req, res, next);
+});
+
+// Middleware to handle GitHub OAuth callback
+export const githubCallback = asyncErrorHandler(async (req, res, next) => {
+  passport.authenticate("github",{
+    failureRedirect: `${process.env.FRONTEND}/login/failed`
+  }, async (err, user, info) => {
+    if (err || !user) {
+      console.log(err);
+      console.log(user);
+      return res.redirect(`${process.env.FRONTEND}/login/failed`);
+    }
+    const id = user.id || user._id;
+    const safeUser = sendUser(user);
+
+    res.setHeader("Location", `${process.env.FRONTEND}/auth-success/github`);
+    
+    createSendResponse(safeUser, 302, res, "user", id);
   })(req, res, next);
 });
