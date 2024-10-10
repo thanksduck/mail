@@ -1,6 +1,7 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as FacebookStrategy } from "passport-facebook";
+import { Strategy as GitHubStrategy } from "passport-github2";
 import User from "../Models/userModel.js";
 import asyncErrorHandler from "../utils/asyncErrorHandler.js";
 import CustomError from "../utils/CustomError.js";
@@ -168,7 +169,7 @@ export const githubCallback = asyncErrorHandler(async (req, res, next) => {
     const id = user.id || user._id;
     const safeUser = sendUser(user);
 
-    res.setHeader("Location", `${process.env.FRONTEND}/auth-success/github`);
+    res.setHeader("Location", `${process.env.FRONTEND}/auth-success/google`);
     
     createSendResponse(safeUser, 302, res, "user", id);
   })(req, res, next);
