@@ -1,7 +1,8 @@
 services:
   app:
-    container_name: oas-api
+    container_name: oas-api-${CONTAINER_NUMBER:-1}
     build: .
+    image: oas-api:latest
     ports:
       - "127.0.0.1:3456:3456"
       - "[::1]:3456:3456"
@@ -10,25 +11,13 @@ services:
       - config.env
     networks:
       - oas
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3456/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   oas:
     external: true
-
-    
-    # depends_on:
-    #   - mongo
-
-#   mongo:
-#     image: mongo:latest
-#     container_name: mongo
-#     ports:
-#       - "127.0.0.1:27017:27017"
-#     volumes:
-#       - mongo-data:/data/db
-#     environment:
-#       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
-#       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
-
-# volumes:
-#   mongo-data:

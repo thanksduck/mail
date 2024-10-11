@@ -1,6 +1,6 @@
 {
   "name": "oas-api",
-  "version": "0.0.0.24.9",
+  "version": "0.0.1.10.10",
   "description": "One Alias Service, Forward to your own main address",
   "main": "server.js",
   "type": "module",

@@ -56,7 +56,7 @@ app.use("/health", (req, res) => {
   res.status(200).json({
     status: "success",
     ipAddress: req.ip,
-    message: `version 0.0.0.24.9 server is running`,
+    message: `version 0.0.1.10.10 server is running`,
   });
 });
 
