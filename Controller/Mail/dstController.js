@@ -10,6 +10,7 @@ import {
   removeDestination,
   updateDestination,
 } from "../User/userDestination.js";
+import validator from "validator";
 
 async function isAllowed(id) {
   const user = await User.findById(id).select("+isPremium");
@@ -44,9 +45,13 @@ export const createDestination = asyncErrorHandler(async (req, res, next) => {
       new CustomError("Destination, username and domain are required", 400)
     );
   }
-  console.log("createDestination was called", destination, username, domain);
   if (username !== req.user.username) {
     return next(new CustomError("Not allowed", 401));
+  }
+  // check for email verification
+  const isValid = validator.isEmail(destination);
+  if (!isValid) {
+    return next(new CustomError("Invalid Email", 400));
   }
   const allowed = await isAllowed(req.user.id);
   if (!allowed) {
