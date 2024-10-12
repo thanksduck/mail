@@ -3,52 +3,52 @@ set -e
 
 echo "===== Starting the Deployment Process ====="
 
-echo "Step 1: Pulling the latest changes from the Git repository..."
-git pull
+# Step 1: Git operations
+echo "Step 1: Checking and pulling the latest changes from the Git repository..."
+git fetch origin
 
-if [ $? -eq 0 ]; then
-    echo "Git pull was successful."
+# Force pull changes
+echo "Forcing pull of latest changes..."
+git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
+if git pull --force; then
+    echo "Successfully pulled latest changes (force pull)."
 else
-    echo "Git pull failed, attempting force pull..."
-    git fetch --all
-    git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
-    git pull
-    if [ $? -eq 0 ]; then
-        echo "Force pull was successful."
-    else
-        echo "Force pull was not successful. Deployment cannot continue."
-        exit 1
-    fi
-fi
-
-echo "Step 2: Building the Docker image..."
-if docker compose build oas-api; then
-    echo "Docker build was successful."
-else
-    echo "Docker build failed. Keeping the previous stable version running."
+    echo "Force pull failed. Exiting."
     exit 1
 fi
 
-echo "Step 3: Checking Docker Compose status..."
-if [ $(docker compose ps | grep -c "Up") -eq 0 ]; then
-    echo "Docker Compose is not running. Initiating a fresh deployment..."
-    docker system prune -f
-    docker compose up -d --build
+# Step 2: Check current running version
+echo "Step 2: Checking current running version..."
+if docker compose ps | grep -q "oas-api"; then
+    CURRENT_IMAGE=$(docker compose images oas-api --format "{{.Image}}")
+    echo "Current version of oas-api is running with image: $CURRENT_IMAGE"
 else
-    echo "Docker Compose is running. Initiating rolling deployment..."
-    echo "Bringing down one service at a time to reduce downtime."
-
-    # Update the oas-api service with no downtime
-    docker compose up -d --no-deps --build oas-api
-    echo "oas-api service is updated successfully with minimum downtime."
-
-    # Optionally, you can update other services similarly if needed
-    # docker compose up -d --no-deps --build other-service
-
-    echo "Cleaning up unused Docker resources..."
-    docker system prune -f
-
-    echo "All services are up and running with the latest build."
+    echo "oas-api is not currently running."
 fi
 
-echo "===== Deployment was successful ====="
+# Step 3: Build and update
+echo "Step 3: Building and updating the Docker service..."
+if docker compose up -d --build --no-deps oas-api; then
+    echo "Successfully built and updated oas-api service."
+    NEW_IMAGE=$(docker compose images oas-api --format "{{.Image}}")
+    if [ "$CURRENT_IMAGE" = "$NEW_IMAGE" ]; then
+        echo "No changes in the image. Service is up to date."
+    else
+        echo "Service updated with new image: $NEW_IMAGE"
+    fi
+else
+    echo "Failed to build or update oas-api service. Rolling back..."
+    if [ -n "$CURRENT_IMAGE" ]; then
+        docker compose up -d --no-deps oas-api
+        echo "Rolled back to previous version: $CURRENT_IMAGE"
+    else
+        echo "No previous version to roll back to. Service may be down."
+    fi
+    exit 1
+fi
+
+# Step 4: Cleanup
+echo "Step 4: Cleaning up unused Docker resources..."
+docker system prune -f
+
+echo "===== Deployment process completed ====="

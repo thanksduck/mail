@@ -9,8 +9,6 @@ services:
     restart: always
     env_file:
       - config.env
-    networks:
-      - oas
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3456/health"]
       interval: 30s
@@ -19,5 +17,6 @@ services:
       start_period: 40s
 
 networks:
-  oas:
+  default:
     external: true
+    name: oas
