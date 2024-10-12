@@ -20,8 +20,7 @@ fi
 # Step 2: Check current running version
 echo "Step 2: Checking current running version..."
 if docker compose ps | grep -q "oas-api"; then
-    CURRENT_IMAGE=$(docker compose images oas-api --format "{{.Image}}")
-    echo "Current version of oas-api is running with image: $CURRENT_IMAGE"
+    echo "oas-api is currently running."
 else
     echo "oas-api is not currently running."
 fi
@@ -30,20 +29,10 @@ fi
 echo "Step 3: Building and updating the Docker service..."
 if docker compose up -d --build --no-deps oas-api; then
     echo "Successfully built and updated oas-api service."
-    NEW_IMAGE=$(docker compose images oas-api --format "{{.Image}}")
-    if [ "$CURRENT_IMAGE" = "$NEW_IMAGE" ]; then
-        echo "No changes in the image. Service is up to date."
-    else
-        echo "Service updated with new image: $NEW_IMAGE"
-    fi
 else
     echo "Failed to build or update oas-api service. Rolling back..."
-    if [ -n "$CURRENT_IMAGE" ]; then
-        docker compose up -d --no-deps oas-api
-        echo "Rolled back to previous version: $CURRENT_IMAGE"
-    else
-        echo "No previous version to roll back to. Service may be down."
-    fi
+    docker compose up -d --no-deps oas-api
+    echo "Rolled back to previous version."
     exit 1
 fi
 
