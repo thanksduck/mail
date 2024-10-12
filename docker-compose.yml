@@ -1,5 +1,5 @@
 services:
-  app:
+  oas-api:
     container_name: oas-api
     build: .
     image: oas-api:latest
