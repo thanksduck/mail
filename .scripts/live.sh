@@ -1,71 +1,54 @@
 #!/bin/bash
 set -e
 
-echo "Starting Rolling Release Deployment for OAS API Service"
+echo "===== Starting the Deployment Process ====="
 
-# Function to check if pull was successful
-git_pull_with_retry() {
-    echo "Attempting git pull..."
-    if git pull; then
-        echo "Git pull was successful"
-    else
-        echo "Git pull failed, attempting force pull..."
-        git fetch --all
-        git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
-        if git pull; then
-            echo "Force pull was successful"
-        else
-            echo "Force pull failed. Exiting."
-            exit 1
-        fi
-    fi
-}
+echo "Step 1: Pulling the latest changes from the Git repository..."
+git pull
 
-# Update repository
-git_pull_with_retry
-
-# Check and copy config file if needed
-if [ -f config.env ]; then
-    echo "config.env file exists."
+if [ $? -eq 0 ]; then
+    echo "Git pull was successful."
 else
-    echo "Copying config.env from $SECRET_PATH"
-    cp "$SECRET_PATH/config.env" .
-    echo "config.env file copied successfully"
+    echo "Git pull failed, attempting force pull..."
+    git fetch --all
+    git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
+    git pull
+    if [ $? -eq 0 ]; then
+        echo "Force pull was successful."
+    else
+        echo "Force pull was not successful. Deployment cannot continue."
+        exit 1
+    fi
 fi
 
-# Generate a unique tag for the new build
-NEW_TAG="build-$(date +%Y%m%d%H%M%S)"
-echo "Generated new tag: $NEW_TAG"
+echo "Step 2: Building the Docker image..."
+if docker compose build oas-api; then
+    echo "Docker build was successful."
+else
+    echo "Docker build failed. Keeping the previous stable version running."
+    exit 1
+fi
 
-# Build the new image
-echo "Building new Docker image with tag: $NEW_TAG"
-docker compose build --no-cache
+echo "Step 3: Checking Docker Compose status..."
+if [ $(docker compose ps | grep -c "Up") -eq 0 ]; then
+    echo "Docker Compose is not running. Initiating a fresh deployment..."
+    docker system prune -f
+    docker compose up -d --build
+else
+    echo "Docker Compose is running. Initiating rolling deployment..."
+    echo "Bringing down one service at a time to reduce downtime."
 
-# Tag the new build
-docker tag oas-api:latest "oas-api:$NEW_TAG"
-echo "Tagged new build as oas-api:$NEW_TAG"
+    # Update the oas-api service with no downtime
+    docker compose up -d --no-deps --build oas-api
+    echo "oas-api service is updated successfully with minimum downtime."
 
-# Start the new container
-echo "Starting new container with tag: $NEW_TAG"
-docker compose up -d --no-deps --scale app=2 --no-recreate -d
+    # Optionally, you can update other services similarly if needed
+    # docker compose up -d --no-deps --build other-service
 
-# Wait for the new container to be healthy
-echo "Waiting for new container to be healthy..."
-until [ "`docker inspect -f {{.State.Health.Status}} $(docker compose ps -q app | tail -n1)`" == "healthy" ]; do
-    sleep 5
-    echo "Still waiting for container to be healthy..."
-done
+    echo "Cleaning up unused Docker resources..."
+    docker system prune -f
 
-# Stop the old container
-echo "New container is healthy. Stopping old container..."
-docker stop $(docker compose ps -q app | head -n1)
+    echo "All services are up and running with the latest build."
+fi
 
-# Remove the old container
-echo "Removing old container..."
-docker rm $(docker compose ps -q app | head -n1)
-
-# Prune unused images and volumes
-echo "Pruning unused Docker resources..."
-docker system prune -af --volumes
-
-echo "Rolling release deployment completed successfully!"
+echo "===== Deployment was successful ====="

@@ -1,6 +1,6 @@
 services:
   app:
-    container_name: oas-api-${CONTAINER_NUMBER:-1}
+    container_name: oas-api
     build: .
     image: oas-api:latest
     ports:
