@@ -1,4 +1,4 @@
-name: Deploy To Production
+name: Go Live
 
 # Trigger Points
 on:
@@ -6,25 +6,22 @@ on:
     branches:
       - main
 
+
 jobs:
-  deploy:
+  GoLive:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
       - name: Deploy to server
-        uses: appleboy/ssh-action@master
-        env:
-          SECRET_PATH: ${{secrets.SECRET_PATH}}
-          repo_path: ${{secrets.SECRET_PROJECT_PATH}}
-          TOY_ENV: "Enjoy-deploy"
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSHKEY }}
-          envs: SECRET_PATH
-          script: |
-            echo "Login To Machine Was SuccessFull"
-            echo "Here is your ToyENV - i'm $TOY_ENV"
-            cd ~/server/mail/ && sh ./.scripts/live.sh
+        run: |
+          echo "Login To Machine Was SuccessFull"
+          ssh -o "StrictHostKeyChecking no" ubuntu@sora "
+          cd ~/server/mail/ && sh ./.scripts/live.sh
+          "
+
